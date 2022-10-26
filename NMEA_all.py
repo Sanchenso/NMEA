@@ -6,12 +6,12 @@ files = os.listdir(dirname)
 for i in files:
     if i[-4:] == '.dat' or i[-4:] == '.ubx':
         print(i)
-        subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'GPS' + ' ' + 'L1')
+        #subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'GPS' + ' ' + 'L1')
         subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'GPS' + ' ' + 'L2')
-        subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'Glonass' + ' ' + 'L1')
+        #subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'Glonass' + ' ' + 'L1')
         subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'Glonass' + ' ' + 'L2')
-        subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'BeiDou' + ' ' + 'L1')
-        subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'BeiDou' + ' ' + 'L2')
+        #subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'BeiDou' + ' ' + 'L1')
+        #subprocess.call("python " + 'NMEA.py' + ' ' + i + ' ' + 'BeiDou' + ' ' + 'L2')
 
 dirname = '/Users/a.timoshkov/PycharmProjects/pythonProject'
 files = os.listdir(dirname)

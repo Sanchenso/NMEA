@@ -311,13 +311,14 @@ with open(nameFile, encoding="CP866") as inf2:
                     print(newLine)
                     print()
             if ((newLine[0] == '$GNGSA') or (newLine[0] == '$GPGSA')) and (newLine[2] == '2' or newLine[2] == '3') \
-                    and chksum_nmea(newLine) and countGGA >= 1 and newLine[-3] == GSA_idSystem:
+                    and chksum_nmea(newLine) and countGGA >= 1:
+#                    and chksum_nmea(newLine) and countGGA >= 1 and newLine[-3] == GSA_idSystem:
                 for i in range(3, len(newLine) - 6):
                     if newLine[i] != '' and len(newLine[i]) == 2:
                         inUse_sat.append(int(newLine[i]))
             if newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine) and len(newLine) < 24:
                 parserGSV(newLine)
-                # parserGSV_inUse(newLine, inUse_sat)
+                #parserGSV_inUse(newLine, inUse_sat)
 
 print('Number of sat all: ', end='')
 print(len(all_sat.keys()))
@@ -451,16 +452,23 @@ for k in result:
     if len(myList) > 0:
         x, y = zip(*myList)
         sns.set_theme(style="ticks",
-                      rc={"axes.spines.right": False, "axes.spines.top": False, 'figure.figsize': (10, 8)})
-        sns.lineplot(x=x, y=y, size=10)
-        sns.scatterplot(x=x, y=y, s=10)
+                      rc={"axes.spines.right": False, "axes.spines.top": False, 'figure.figsize': (8, 6)})
+        sns.lineplot(x=x, y=y, size=8)
+        sns.scatterplot(x=x, y=y, s=8)
+
+
 plt.xlabel('Time')
 plt.ylabel('SNR, dBHz')
+print(x[0])
+plt.text(x[0], 57, 'average_SNR:')
+plt.text(x[0], 55, '        dBHz')
+plt.text(x[0], 55, str(round((Average / schet), 1)))
 plt.title(nameFile + ", " + systemName + '_' + IDsystem)
+#plt.title(nameFile + ", " + systemName)
 plt.ylim(10, 60)
 plt.grid(color='black', linestyle='--', linewidth=0.2)
 plt.legend([], [], frameon=False)
-plt.legend(all_sat_chosen.keys())
+plt.legend(all_sat_chosen.keys(), loc='upper right')
 nameFileSaved = nameFile[0:-4] + '_' + systemName + '_' + IDsystem + '.png'
 plt.savefig(nameFileSaved, dpi=500)
 plt.show()
