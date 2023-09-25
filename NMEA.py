@@ -345,15 +345,15 @@ with open('test.txt', 'a') as f1:
     f1.write(IDsystem)
     # f1.write('L1')
     f1.write(' ')
-    # f1.write(str(round((Average / schet), 1)))
-    f1.write(str(round((averageSNR / countSNR1), 1)))
+    f1.write(str(round((Average / schet), 1)))
+    # f1.write(str(round((averageSNR / countSNR1), 1)))
     f1.write(' ')
     f1.write(str(gh))
     f1.write(' ')
     f1.write(str(countGGA))  # number of GGA messages
     f1.write(' ')
-    # f1.write(str(countErrorChk))  # ErrMes
-    # f1.write(' ')
+    f1.write(str(countErrorChk))  # ErrMes
+    f1.write(' ')
     f1.write(str(round((last - first).total_seconds() * freq)))  # DifTime from first and last GGA
     f1.write('\n')
 
