@@ -25,7 +25,7 @@ possibleNMEA = ['$GPGGA', '$GPGSA', '$GNGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BD
 
 # значение elevation, значения ниже этого в рассчете не участует
 MinElevation = 10
-# значение SNR, значения ниже этого в рассчете не участует
+# значение SNR, значения ниже этого в рассчете не участуют
 minSNR = 20
 # значение частоты выдачи сообщений в Герц
 freq = 1
@@ -43,22 +43,26 @@ countSNR1 = 0
 if systemName == 'GPS':
     satelliteSystem = '$GPGSV'
     GSA_idSystem = '1'
+    inUse_sat_sys = inUse_sat_GPS
     [PossibleSatInSystem.append(i) for i in range(1, 33)]
 else:
     if systemName == 'Glonass':
         satelliteSystem = '$GLGSV'
         GSA_idSystem = '2'
-        [PossibleSatInSystem.append(i) for i in range(65, 89)]
+        inUse_sat_sys = inUse_sat_Glonass
+        [PossibleSatInSystem.append(i) for i in list(range(65, 97)) + list(range(1, 25))]
     else:
         if systemName == 'BeiDou':
             satelliteSystem = ['$GBGSV', '$BDGSV']
             GSA_idSystem = '4'
+            inUse_sat_sys = inUse_sat_BeiDou
             [PossibleSatInSystem.append(i) for i in range(1, 64)]
         else:
             if systemName == 'Galileo':
                 satelliteSystem = '$GAGSV'
-                GSA_idSystem = '2'
-                [PossibleSatInSystem.append(i) for i in range(101, 137)]
+                GSA_idSystem = '3'
+                inUse_sat_sys = inUse_sat_Galileo
+                [PossibleSatInSystem.append(i) for i in list(range(101, 137)) + list(range(1, 37))]
             else:
                 satelliteSystem = 'NON'
                 GSA_idSystem = 'NON'
@@ -70,7 +74,7 @@ if satelliteSystem == 'NON' or GSA_idSystem == 'NON':
     print('L1 or L2')
 
 
-# ф-я заполнение словаря all_sat, включающее L1
+# ф-я заполнение словаря all_sat, включающее L1, L2 и др
 def SatSnr(snr_dict, lineSat, lineSnr):
     satN = int(newLine[lineSat].strip())
     snrN = newLine[lineSnr].strip()
@@ -82,7 +86,7 @@ def SatSnr(snr_dict, lineSat, lineSnr):
     return satN, snrN
 
 
-# ф-я заполнение словаря satElevation, включающее L1 и L2
+# ф-я заполнение словаря satElevation, включающее L1, L2 и др
 def SatElevation(elevation_dict, lineSat, lineElev):
     satN = int(newLine[lineSat].strip())
     elevN = newLine[lineElev].strip()
@@ -95,13 +99,13 @@ def SatElevation(elevation_dict, lineSat, lineElev):
 
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (только используемые спутники)
-def parserGSV_inUse(newLine, inUse_sat):
+def parserGSV_inUse(newLine, inUse_sat_sys):
     satElevation = all_satElevation if newLine[-3] == '1' else all_satElevation2
     satSnr = all_sat if newLine[-3] == '1' else all_sat2
     if newLine[5] != "*":
         for i in range(4, 20, 4):
             if newLine.index('*') > i + 3:
-                if int(newLine[i]) in inUse_sat and int(newLine[i]) in PossibleSatInSystem:
+                if int(newLine[i]) in inUse_sat_sys and int(newLine[i]) in PossibleSatInSystem:
                     SatElevation(satElevation, i, i + 1)
                     SatSnr(satSnr, i, i + 3)
     return
@@ -186,16 +190,14 @@ with open(nameFile, encoding="CP866") as inf2:
     for line in inf2:
         sym = -1
         for i in set(possibleNMEA):
-            if line.find(i) != -1:
-                sym = line.find(i)
+            found = line.find(i)
+            if found != -1:
+                sym = found
 
         if sym != -1 and len(line) > 10:
             newLine = line[sym::].replace('*', ',*,').split(',')
             if ((newLine[0] == '$GNGGA') or (newLine[0] == '$GPGGA')) and newLine[1] != '' and chksum_nmea(newLine):
-                inUse_sat_GPS = []
-                inUse_sat_Glonass = []
-                inUse_sat_BeiDou = []
-                inUse_sat_Galileo = []
+                inUse_sat_sys = []
                 try:
                     Time = str(newLine[1].strip())
                     time = datetime.datetime.strptime(Time, '%H''%M''%S.%f')
@@ -206,32 +208,17 @@ with open(nameFile, encoding="CP866") as inf2:
                     print(newLine)
                     print()
             if ((newLine[0] == '$GNGSA') or (newLine[0] == '$GPGSA')) and (newLine[2] == '2' or newLine[2] == '3') \
-                    and chksum_nmea(newLine) and countGGA >= 1:
-                #                    and chksum_nmea(newLine) and countGGA >= 1 and newLine[-3] == GSA_idSystem:
+                    and countGGA >= 1 and newLine[-3] == GSA_idSystem and chksum_nmea(newLine):
                 for i in range(3, len(newLine) - 6):
-                    if newLine[i] != '' and len(newLine[i]) == 2 and newLine[-3] == '1':
-                        inUse_sat_GPS.append(int(newLine[i]))
-                    elif newLine[i] != '' and len(newLine[i]) == 2 and newLine[-3] == '2':
-                        inUse_sat_Glonass.append(int(newLine[i]))
-                    elif newLine[i] != '' and len(newLine[i]) == 2 and newLine[-3] == '3':
-                        inUse_sat_Galileo.append(int(newLine[i]))
-                    elif newLine[i] != '' and len(newLine[i]) == 2 and newLine[-3] == '4':
-                        inUse_sat_BeiDou.append(int(newLine[i]))
+                    if newLine[i] != '':
+                        inUse_sat_sys.append(int(newLine[i]))
             if newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine) and len(newLine) < 24:
                 # parserGSV(newLine)
-                if newLine[0] == '$GPGSV':
-                    parserGSV_inUse(newLine, inUse_sat_GPS)
-                if newLine[0] == '$GLGSV':
-                    parserGSV_inUse(newLine, inUse_sat_Glanass)
-                if newLine[0] == '$BDGSV' or 'GBGSV':
-                    parserGSV_inUse(newLine, inUse_sat_BeiDou)
+                parserGSV_inUse(newLine, inUse_sat_sys)
 
-print('Number of sat in use GPS: ', end='')
-print(len(set(inUse_sat_GPS)))
-print('Number of sat in use BeiDou: ', end='')
-print(len(set(inUse_sat_BeiDou)))
-print('Number of sat in use Glonass: ', end='')
-print(len(set(inUse_sat_Glonass)))
+
+print('Number of sat in use', systemName, end=': ')
+print(len(set(inUse_sat_sys)))
 print()
 
 # Подсчет кол-ва сообщений, прошедших проверку  cheksumm

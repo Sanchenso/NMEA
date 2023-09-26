@@ -65,4 +65,4 @@ plt.ylabel('Velocity, kmph', fontsize=12)
 
 plt.title(nameFile[:-4], fontsize=18)
 plt.savefig(nameFile[:-4], dpi=500)
-plt.show()
+#plt.show()
