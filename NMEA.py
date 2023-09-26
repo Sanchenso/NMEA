@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
-import datetime
+from datetime import datetime, timedelta, time
 import re
 import sys
+import pynmea2
+import pandas as pd
 
 nameFile = sys.argv[1]  # for example 'test.ubx'
 systemName = sys.argv[2]  # for example 'GPS'
@@ -13,15 +15,17 @@ all_sat = {}
 all_sat2 = {}
 all_satElevation = {}
 all_satElevation2 = {}
+altitudeGGA = {}
+dictRMC = {}
 
 inUse_sat_GPS = []
 inUse_sat_Glonass = []
 inUse_sat_BeiDou = []
 inUse_sat_Galileo = []
-
 PossibleSatInSystem = []
 listTimeGGA = []
-possibleNMEA = ['$GPGGA', '$GPGSA', '$GNGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BDGSV', '$GBGSV', '$GAGSV']
+
+possibleNMEA = ['$GPGGA', '$GPGSA', '$GNGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BDGSV', '$GBGSV', '$GAGSV', '$GNRMC']
 
 # значение elevation, значения ниже этого в рассчете не участует
 MinElevation = 10
@@ -30,6 +34,8 @@ minSNR = 20
 # значение частоты выдачи сообщений в Герц
 freq = 1
 
+numsecEr = 0
+flag_GSA = 0
 nSat = 0
 countGGA = 0
 normstring = 0
@@ -99,30 +105,54 @@ def SatElevation(elevation_dict, lineSat, lineElev):
 
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (только используемые спутники)
-def parserGSV_inUse(newLine, inUse_sat_sys):
-    satElevation = all_satElevation if newLine[-3] == '1' else all_satElevation2
-    satSnr = all_sat if newLine[-3] == '1' else all_sat2
-    if newLine[5] != "*":
+def parserGSV_inUse(line_from_file, inUse_sat_sys):
+    satElevation = all_satElevation if line_from_file[-3] == '1' else all_satElevation2
+    satSnr = all_sat if line_from_file[-3] == '1' else all_sat2
+    if line_from_file[5] != "*":
         for i in range(4, 20, 4):
-            if newLine.index('*') > i + 3:
-                if int(newLine[i]) in inUse_sat_sys and int(newLine[i]) in PossibleSatInSystem:
+            if line_from_file.index('*') > i + 3:
+                if int(line_from_file[i]) in inUse_sat_sys and int(line_from_file[i]) in PossibleSatInSystem:
                     SatElevation(satElevation, i, i + 1)
                     SatSnr(satSnr, i, i + 3)
     return
 
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (все видимые спутники)
-def parserGSV(newLine):
-    satElevation = all_satElevation if newLine[-3] == '1' else all_satElevation2
-    satSnr = all_sat if newLine[-3] == '1' else all_sat2
-    if newLine[5] != "*":
+def parserGSV(line_from_file):
+    satElevation = all_satElevation if line_from_file[-3] == '1' else all_satElevation2
+    satSnr = all_sat if line_from_file[-3] == '1' else all_sat2
+    if line_from_file[5] != "*":
         for i in range(4, 20, 4):
-            if newLine.index('*') > i + 3:
-                if newLine[i] != '' and int(newLine[i]) in PossibleSatInSystem:
+            if line_from_file.index('*') > i + 3:
+                if line_from_file[i] != '' and int(line_from_file[i]) in PossibleSatInSystem:
                     SatElevation(satElevation, i, i + 1)
                     SatSnr(satSnr, i, i + 3)
     return
 
+
+def parserRMC(line_from_file, msg):
+    listMsgRMC = [msg.status, msg.mode_indicator, msg.nav_status, msg.spd_over_grnd]
+    time1 = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
+    formatted_output1 = time1.strftime('%H:%M:%S.%f')
+    velocity = round(1.852/3.6 * float(check_argument(msg.spd_over_grnd)), 2)
+    dictRMC[formatted_output1] = msg.status, msg.mode_indicator, msg.nav_status, msg.spd_over_grnd
+    return
+
+
+def parserGGA(line_from_file, msg):
+    time = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
+    listTimeGGA.append(line_from_file[1])
+    formatted_output = time.strftime('%H:%M:%S.%f')
+    altitudeGGA[formatted_output] = float(check_argument(msg.altitude)), float(
+        check_argument(msg.age_gps_data)), int(msg.gps_qual)
+    return time
+
+
+def parserGSA(line_from_file):
+    for i in range(3, len(line_from_file) - 6):
+        if line_from_file[i] != '':
+            inUse_sat_sys.append(int(line_from_file[i]))
+    return
 
 # функция проверка чексуммы сообщений NMEA
 def chksum_nmea(sentence):
@@ -185,37 +215,57 @@ def average(dataDict):
     return list_Average, list_count_Average, list_Sat
 
 
+def check_argument(arg):
+    global numsecEr
+    default_value = -1  # или любое другое значение по умолчанию
+    if arg is not None:
+        if arg != '':
+            try:
+                return float(arg)
+            except ValueError:
+                numsecEr += 1
+                print("arg can't convert to float")
+        else:
+            numsecEr += 1
+            print("arg is an empty string")
+    else:
+        numsecEr += 1
+        print("arg is None")
+    return default_value  # возвращаем значение по умолчанию, если arg не может быть преобразовано в float
+
+
+
 # Base перебор сообщений из файла
 with open(nameFile, encoding="CP866") as inf2:
     for line in inf2:
         sym = -1
         for i in set(possibleNMEA):
-            found = line.find(i)
-            if found != -1:
-                sym = found
-
-        if sym != -1 and len(line) > 10:
-            newLine = line[sym::].replace('*', ',*,').split(',')
-            if ((newLine[0] == '$GNGGA') or (newLine[0] == '$GPGGA')) and newLine[1] != '' and chksum_nmea(newLine):
-                inUse_sat_sys = []
-                try:
-                    Time = str(newLine[1].strip())
-                    time = datetime.datetime.strptime(Time, '%H''%M''%S.%f')
+            start_index = line.find(i)
+            if start_index == -1:
+                continue
+            elif line[start_index:].split(',')[1] == '':
+                countErrorChk += 1
+            try:
+                newLine = line[start_index::].replace('*', ',*,').split(',')
+                msg = pynmea2.parse(line[start_index:].strip())
+                if '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
                     countGGA += 1
-                    listTimeGGA.append(newLine[1])
-                except:
-                    print('find error in logger')
-                    print(newLine)
-                    print()
-            if ((newLine[0] == '$GNGSA') or (newLine[0] == '$GPGSA')) and (newLine[2] == '2' or newLine[2] == '3') \
-                    and countGGA >= 1 and newLine[-3] == GSA_idSystem and chksum_nmea(newLine):
-                for i in range(3, len(newLine) - 6):
-                    if newLine[i] != '':
-                        inUse_sat_sys.append(int(newLine[i]))
-            if newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine) and len(newLine) < 24:
-                # parserGSV(newLine)
-                parserGSV_inUse(newLine, inUse_sat_sys)
-
+                    inUse_sat_sys = []
+                    time = parserGGA(newLine, msg)
+                elif '$GNGSA' in newLine and countGGA >= 1 and (newLine[2] == '2' or newLine[2] == '3') \
+                        and newLine[-3] == GSA_idSystem and chksum_nmea(newLine):
+                    flag_GSA = 1
+                    parserGSA(newLine)
+                elif newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine):
+                    if flag_GSA == 1:
+                        parserGSV_inUse(newLine, inUse_sat_sys)
+                    else:
+                        parserGSV(newLine)
+                elif '$GNRMC' in newLine and countGGA >= 1:
+                    parserRMC(newLine, msg)
+            except pynmea2.ParseError:
+                countErrorChk += 1
+                continue
 
 print('Number of sat in use', systemName, end=': ')
 print(len(set(inUse_sat_sys)))
@@ -231,8 +281,8 @@ print(countGGA)
 print()
 
 # еще один подсчет времени по сообщениям GGA
-last = datetime.datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
-first = datetime.datetime.strptime(listTimeGGA[0], '%H''%M''%S.%f')
+last = datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
+first = datetime.strptime(listTimeGGA[0], '%H''%M''%S.%f')
 print('DifTime from first and last GGA:', end=' ')
 print((last - first).total_seconds(), 'sec')
 print('Frequency:', end=' ')
@@ -241,7 +291,7 @@ print('Number of meesage GGA to be:', end=' ')
 print((round((last - first).total_seconds() * freq)))
 
 # Подсчет количества секунд и подсчет количества GGA сообщений
-countTime = datetime.timedelta(days=0, hours=0, minutes=0)
+countTime = timedelta(days=0, hours=0, minutes=0)
 for i in all_sat.values():
     chislo = max(i.keys()) - min(i.keys())
     if countTime < chislo:
@@ -332,8 +382,8 @@ with open('test.txt', 'a') as f1:
     f1.write(IDsystem)
     # f1.write('L1')
     f1.write(' ')
-    f1.write(str(round((Average / schet), 1)))
-    # f1.write(str(round((averageSNR / countSNR1), 1)))
+    # f1.write(str(round((Average / schet), 1)))
+    f1.write(str(round((averageSNR / countSNR1), 1)))
     f1.write(' ')
     f1.write(str(gh))
     f1.write(' ')
@@ -365,16 +415,33 @@ for k in result:
 # ax.xaxis.set_major_locator(locator)
 
 
+
+df = pd.DataFrame(list(altitudeGGA.items()), columns=["GPS_Time", "Values"])
+df2 = pd.DataFrame(list(dictRMC.items()), columns=["GPS_Time", "Values"])
+df3 = pd.DataFrame(all_sat_chosen)
+df3.index = df3.index.to_series().apply(lambda x: x.to_pydatetime().time())
+# Разделить колонку "Values" на две колонки
+df[['Altitude', 'rtkAGE', 'Status']] = pd.DataFrame(df.Values.tolist(), index=df.index)
+df2[["status", "mode_indicator", "nav_status", "Speed"]] = pd.DataFrame(df2.Values.tolist(), index=df2.index)
+# Удалить колонку "Values"
+df = df.drop(["Values"], axis=1)
+df2 = df2.drop(["Values"], axis=1)
+df_NMEA = df
+df_RMC_NMEA = df2
+df.to_csv(nameFile[:-4] + '_GGA.csv', index=False)
+df2.to_csv(nameFile[:-4] + '_RMC.csv', index=False)
+df3.to_csv(nameFile[:-4] + '_' + systemName + '_' + IDsystem + '_SNR.csv', index=True)
+
+
+
 plt.xlabel('Time', fontsize=14)
 plt.ylabel('SNR, dBHz', fontsize=14)
-# print(x[0])
 plt.text(x[0], 57, 'average SNR:', fontsize=14)
-plt.text(x[0], 54, '        dBHz', fontsize=14)
-plt.text(x[0], 54, str(round((Average / schet), 1)), fontsize=14)
-# plt.text(x[0], 55, str(round((averageSNR / countSNR1), 1)))
+plt.text(x[0], 55, '        dBHz', fontsize=14)
+# plt.text(x[0], 54, str(round((Average / schet), 1)), fontsize=14)
+plt.text(x[0], 55, str(round((averageSNR / countSNR1), 1)), fontsize=14)
 plt.title(nameFile + ", " + systemName + '_' + IDsystem, fontsize=14)
 # plt.title(nameFile + ", " + systemName + '_' + 'L1')
-# plt.title(nameFile + ", " + systemName)
 plt.ylim(10, 60)
 plt.grid(color='black', linestyle='--', linewidth=0.2)
 plt.legend([], [], frameon=False)
