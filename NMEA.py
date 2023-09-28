@@ -70,6 +70,8 @@ numsecEr = 0
 flag_GSA = 0
 flag_RMC = 0
 flag_GGA = 0
+flag_GSV = 0
+
 nSat = 0
 countGGA = 0
 normstring = 0
@@ -276,6 +278,7 @@ with open(nameFile, encoding="CP866") as inf2:
                     if flag_GSA == 1:
                         parserGSV_inUse(newLine, inUse_sat_sys)
                     else:
+                        flag_GSV = 1
                         parserGSV(newLine)
                 elif '$GNRMC' in newLine and countGGA >= 1:
                     flag_RMC = 1
@@ -328,7 +331,7 @@ if flag_RMC != 0:
     df2 = df2.drop(["Values"], axis=1)
     df2.to_csv('Result_CSV/' + nameFile[:-4] + '_RMC.csv', index=False)
 
-if flag_GSA != 0:
+if flag_GSA != 0 or flag_GSV != 0:
     print('Number of sat in use', systemName, end=': ')
     print(len(set(inUse_sat_sys)))
     print()
