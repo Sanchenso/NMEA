@@ -417,4 +417,4 @@ if flag_GSA != 0 or flag_GSV != 0:
     nameFileSaved = nameFile[0:-4] + '_' + systemName + '_' + IDsystem + '.png'
     # nameFileSaved = nameFile[0:-4] + '_' + systemName + '_' + 'L1' + '.png'
     plt.savefig('Result_SNR/' + nameFileSaved, dpi=500)
-    #plt.show()
+    plt.show()
