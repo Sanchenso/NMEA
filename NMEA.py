@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta, time
 import re
+import os
 import sys
 import pynmea2
 import pandas as pd
@@ -8,6 +9,11 @@ import pandas as pd
 nameFile = sys.argv[1]  # for example 'test.ubx'
 systemName = sys.argv[2]  # for example 'GPS'
 IDsystem = sys.argv[3]  # for example 'L1'
+
+if not os.path.exists('Result_SNR'):
+    os.makedirs('Result_SNR')
+if not os.path.exists('Result_CSV'):
+    os.makedirs('Result_CSV')
 
 data = {}
 new_Data = {}
@@ -278,7 +284,6 @@ with open(nameFile, encoding="CP866") as inf2:
                 countErrorChk += 1
                 continue
 
-
 if flag_GGA != 0:
     # Подсчет кол-ва сообщений, прошедших проверку  cheksumm
     print('Number of messages:', end=' ')
@@ -315,12 +320,14 @@ if flag_GGA != 0:
     df = pd.DataFrame(list(altitudeGGA.items()), columns=["GPS_Time", "Values"])
     df[['Altitude', 'rtkAGE', 'Status']] = pd.DataFrame(df.Values.tolist(), index=df.index)
     df = df.drop(["Values"], axis=1)
-    df.to_csv(nameFile[:-4] + '_GGA.csv', index=False)
+    df.to_csv('Result_CSV/' + nameFile[:-4] + '_GGA.csv', index=False)
+
 if flag_RMC != 0:
     df2 = pd.DataFrame(list(dictRMC.items()), columns=["GPS_Time", "Values"])
     df2[["status", "mode_indicator", "nav_status", "Speed"]] = pd.DataFrame(df2.Values.tolist(), index=df2.index)
     df2 = df2.drop(["Values"], axis=1)
-    df2.to_csv(nameFile[:-4] + '_RMC.csv', index=False)
+    df2.to_csv('Result_CSV/' + nameFile[:-4] + '_RMC.csv', index=False)
+
 if flag_GSA != 0:
     print('Number of sat in use', systemName, end=': ')
     print(len(set(inUse_sat_sys)))
@@ -356,7 +363,7 @@ if flag_GSA != 0:
     print(gh)
 
     # дозапись осреденных в файл test.txt - для скрипта
-    with open('test.txt', 'a') as f1:
+    with open('Result_SNR/test.txt', 'a') as f1:
         f1.write(nameFile[0:-4])
         f1.write('_')
         f1.write(systemName)
@@ -378,7 +385,7 @@ if flag_GSA != 0:
 
     df3 = pd.DataFrame(all_sat_chosen)
     df3.index = df3.index.to_series().apply(lambda x: x.to_pydatetime().time())
-    df3.to_csv(nameFile[:-4] + '_' + systemName + '_' + IDsystem + '_SNR.csv', index=True)
+    df3.to_csv('Result_CSV/' + nameFile[:-4] + '_' + systemName + '_' + IDsystem + '_SNR.csv', index=True)
 
     # вывод графика и сохранение в jpeg
     result = all_sat_chosen.values()
@@ -406,5 +413,5 @@ if flag_GSA != 0:
     plt.legend(all_sat_chosen.keys(), loc='upper right')
     nameFileSaved = nameFile[0:-4] + '_' + systemName + '_' + IDsystem + '.png'
     # nameFileSaved = nameFile[0:-4] + '_' + systemName + '_' + 'L1' + '.png'
-    plt.savefig(nameFileSaved, dpi=500)
+    plt.savefig('Result_SNR/' + nameFileSaved, dpi=500)
     #plt.show()
