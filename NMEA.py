@@ -132,7 +132,7 @@ def parserGSV_inUse(line_from_file, inUse_sat_sys):
     if line_from_file[5] != "*":
         for i in range(4, 20, 4):
             if line_from_file.index('*') > i + 3:
-                if int(line_from_file[i]) in inUse_sat_sys and int(line_from_file[i]) in PossibleSatInSystem:
+                if len(str(line_from_file[i])) < 3 and int(line_from_file[i]) in inUse_sat_sys and int(line_from_file[i]) in PossibleSatInSystem:
                     SatElevation(satElevation, i, i + 1)
                     SatSnr(satSnr, i, i + 3)
     return
@@ -145,7 +145,7 @@ def parserGSV(line_from_file):
     if line_from_file[5] != "*":
         for i in range(4, 20, 4):
             if line_from_file.index('*') > i + 3:
-                if line_from_file[i] != '' and int(line_from_file[i]) in PossibleSatInSystem:
+                if line_from_file[i] != '' and len(str(line_from_file[i])) < 3 and int(line_from_file[i]) in PossibleSatInSystem:
                     SatElevation(satElevation, i, i + 1)
                     SatSnr(satSnr, i, i + 3)
     return
@@ -260,8 +260,10 @@ with open(nameFile, encoding="CP866") as inf2:
             start_index = line.find(i)
             if start_index == -1:
                 continue
-            elif line[start_index:].split(',')[1] == '':
+            split_line = line[start_index:].split(',')
+            if len(split_line) < 2 or split_line[1] == '':
                 countErrorChk += 1
+                break
             try:
                 newLine = line[start_index::].replace('*', ',*,').split(',')
                 msg = pynmea2.parse(line[start_index:].strip())
@@ -270,19 +272,23 @@ with open(nameFile, encoding="CP866") as inf2:
                     countGGA += 1
                     inUse_sat_sys = []
                     time = parserGGA(newLine, msg)
+                    break
                 elif '$GNGSA' in newLine and countGGA >= 1 and (newLine[2] == '2' or newLine[2] == '3') \
                         and newLine[-3] == GSA_idSystem and chksum_nmea(newLine):
                     flag_GSA = 1
                     parserGSA(newLine)
+                    break
                 elif newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine):
                     if flag_GSA == 1:
                         parserGSV_inUse(newLine, inUse_sat_sys)
                     else:
                         flag_GSV = 1
                         parserGSV(newLine)
+                    break
                 elif '$GNRMC' in newLine and countGGA >= 1:
                     flag_RMC = 1
                     parserRMC(newLine, msg)
+                    break
             except pynmea2.ParseError:
                 countErrorChk += 1
                 continue
@@ -323,13 +329,13 @@ if flag_GGA != 0:
     df = pd.DataFrame(list(altitudeGGA.items()), columns=["GPS_Time", "Values"])
     df[['Altitude', 'rtkAGE', 'Status']] = pd.DataFrame(df.Values.tolist(), index=df.index)
     df = df.drop(["Values"], axis=1)
-    df.to_csv('Result_CSV/' + nameFile[:-4] + '_GGA.csv', index=False)
+    df.to_csv('Result_CSV/' + nameFile[:-4] + '_GGA.csv', index=False, escapechar="\\")
 
 if flag_RMC != 0:
     df2 = pd.DataFrame(list(dictRMC.items()), columns=["GPS_Time", "Values"])
     df2[["status", "mode_indicator", "nav_status", "Speed"]] = pd.DataFrame(df2.Values.tolist(), index=df2.index)
     df2 = df2.drop(["Values"], axis=1)
-    df2.to_csv('Result_CSV/' + nameFile[:-4] + '_RMC.csv', index=False)
+    df2.to_csv('Result_CSV/' + nameFile[:-4] + '_RMC.csv', index=False, escapechar="\\")
 
 if flag_GSA != 0 or flag_GSV != 0:
     print('Number of sat in use', systemName, end=': ')
