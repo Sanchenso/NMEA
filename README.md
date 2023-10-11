@@ -8,7 +8,9 @@ functions: parsing the data of the selected configuration
 arguments (configuration):
 
 1 - name of log ("logname.dat")
+
 2 - name of gnss system ("GPS""Glonass"/"BeiDou"/"Galileo")
+
 3 - name of frequency ("L1" or "L2")
 
 usage example: python3 NMEA.py logname.dat GPS L1
