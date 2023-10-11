@@ -3,7 +3,7 @@ parser SNR for Nmea
 
 ### script NMEA.py
 
-functions: parsing the data of the selected configuration
+functions: parsing the NMEA 4.10 (GGA, GSA, RMC, GSV messages) of the selected configuration
 
 arguments (configuration):
 
