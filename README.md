@@ -2,6 +2,7 @@
 parser SNR for Nmea
 
 script NMEA.py 
+
 functions: parsing the data of the selected configuration
 
 arguments (configuration):
@@ -19,6 +20,7 @@ output:
 
 
 script NMEA_all.py 
+
 arguments: None
 
 functions:
