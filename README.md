@@ -1,7 +1,7 @@
 # NMEA
 parser SNR for Nmea
 
-### script NMEA.py
+### NMEA.py
 
 functions: parsing the NMEA 4.10 (GGA, GSA, RMC, GSV messages) of the selected configuration
 
@@ -23,7 +23,7 @@ output:
 - show plot
 
 
-### script NMEA_all.py 
+### NMEA_all.py 
 
 arguments: None
 
@@ -33,3 +33,16 @@ functions:
 - parses all logs with the dat extension in the directory
 
 usage example: python3 NMEA_all.py
+
+
+### NMEA.exe 
+
+functions: compiled script NMEA.py for Windows
+
+usage example in CMD/PowerShell: .\NMEA.exe logname.dat GPS L1
+
+### NMEA.bin 
+
+functions: compiled script NMEA.py for Linux
+
+usage example in bash: ./NMEA.bin logname.dat GPS L1
