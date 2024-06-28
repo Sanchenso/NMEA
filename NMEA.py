@@ -6,7 +6,7 @@ import sys
 import pynmea2
 import pandas as pd
 import matplotlib.dates as mdates
-from matplotlib.dates import MinuteLocator
+from matplotlib.dates import SecondLocator
 
 nameFile = sys.argv[1]  # for example 'test.ubx'
 systemName = sys.argv[2]  # for example 'GPS'
@@ -27,6 +27,7 @@ all_satElevation = {}
 all_satElevation2 = {}
 altitudeGGA = {}
 dictRMC = {}
+dictTXT = {}
 
 inUse_sat_GPS = []
 inUse_sat_Glonass = []
@@ -61,7 +62,7 @@ SYSTEMS = {
         'in_use': inUse_sat_Galileo
     }
 }
-possibleNMEA = ['$GPGGA', '$GPGSA', '$GPGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BDGSV', '$GBGSV', '$GAGSV', '$GNRMC', '$GNGGA']
+possibleNMEA = ['$GPGGA', '$GPGSA', '$GPGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BDGSV', '$GBGSV', '$GAGSV', '$GNRMC', '$GNGGA', '$GNTXT']
 
 # значение elevation, значения ниже этого в рассчете не участует
 MinElevation = 10
@@ -74,6 +75,7 @@ flag_GSA = 0
 flag_RMC = 0
 flag_GGA = 0
 flag_GSV = 0
+flag_TXT = 0
 
 nSat = 0
 countGGA = 0
@@ -109,11 +111,11 @@ def SatSnr(snr_dict, lineSat, lineSnr):
     satN = int(newLine[lineSat].strip())
     snrN = newLine[lineSnr].strip()
     if snrN == '':
-        value = snrN
+        value = None
     else:
         value = int(snrN)
     snr_dict.setdefault(satN, {})[time] = value
-    return satN, snrN
+    return satN, value
 
 
 # ф-я заполнение словаря satElevation, включающее L1, L2 и др
@@ -121,11 +123,11 @@ def SatElevation(elevation_dict, lineSat, lineElev):
     satN = int(newLine[lineSat].strip())
     elevN = newLine[lineElev].strip()
     if elevN == '':
-        value = elevN
+        value = None
     else:
         value = int(elevN)
     elevation_dict.setdefault(satN, {})[time] = value
-    return satN, elevN
+    return satN, value
 
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (только используемые спутники)
@@ -141,7 +143,7 @@ def parserGSV_inUse(line_from_file, inUse_sat_sys):
     return
 
 
-# функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (все видимые спутники)
+# функция парсера сообщений GSV вывод SNR (все видимые спутники)
 def parserGSV(line_from_file):
     satElevation = all_satElevation if line_from_file[-3] == '1' else all_satElevation2
     satSnr = all_sat if line_from_file[-3] == '1' else all_sat2
@@ -177,6 +179,10 @@ def parserGSA(line_from_file):
             inUse_sat_sys.append(int(line_from_file[i]))
     return
 
+def parserTXT(line_from_file, time):
+    check_argument(str(line_from_file))
+    dictTXT[time.strftime('%H:%M:%S.%f')] = line_from_file[1:-2] # без контрольной суммы и маски сообщения
+    return
 
 # функция проверка чексуммы сообщений NMEA
 def chksum_nmea(sentence):
@@ -229,9 +235,9 @@ def average(dataDict):
     list_Sat = []
 
     for numerOfSat, values in dataDict.items():
-        clean_values = [int(v) for v in values.values() if v != '']
+        clean_values = [int(v) for v in values.values() if v is not None and v != '']
         if clean_values:
-            avg = round(sum(clean_values) / len(clean_values), 1)
+            avg = float(round(sum(clean_values) / len(clean_values), 1))
             list_Average.append(avg)
             list_count_Average.append(len(clean_values))
             list_Sat.append(numerOfSat)
@@ -288,6 +294,9 @@ with open(nameFile, encoding="CP866") as inf2:
                     flag_RMC = 1
                     parserRMC(newLine, msg)
                     break
+                elif '$GNTXT' in newLine and countGGA >= 1:
+                    flag_TXT = 1
+                    parserTXT(newLine, time)
             except pynmea2.ParseError:
                 countErrorChk += 1
                 continue
@@ -308,8 +317,9 @@ if flag_GGA != 0:
     # еще один подсчет времени по сообщениям GGA
     last = datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
     first = datetime.strptime(listTimeGGA[0], '%H''%M''%S.%f')
+    time_of_flight = int((last - first).total_seconds())
     print('DifTime from first and last GGA:', end=' ')
-    print((last - first).total_seconds(), 'sec')
+    print(time_of_flight, 'sec')
 
     df = pd.DataFrame(list(altitudeGGA.items()), columns=["GPS_Time", "Values"])
     df[['Altitude', 'rtkAGE', 'Status']] = pd.DataFrame(df.Values.tolist(), index=df.index)
@@ -321,6 +331,12 @@ if flag_RMC != 0:
     df2[["status", "mode_indicator", "nav_status", "Speed"]] = pd.DataFrame(df2.Values.tolist(), index=df2.index)
     df2 = df2.drop(["Values"], axis=1)
     df2.to_csv('Result_CSV/' + nameFile_int + '_RMC.csv', index=False, escapechar="\\")
+
+if flag_TXT != 0:
+    df3 = pd.DataFrame(list(dictTXT.items()), columns=["GPS_Time", "Values"])
+    values_df = pd.DataFrame(df3['Values'].tolist())
+    df3 = df3.drop(columns=['Values']).join(values_df)
+    df3.to_csv('Result_CSV/' + nameFile_int + '_TXT.csv', index=False, escapechar="\\")
 
 if flag_GSA != 0 or flag_GSV != 0:
     p = average(all_sat_chosen)
@@ -365,6 +381,7 @@ if flag_GSA != 0 or flag_GSV != 0:
         f1.write('\n')
 
     df3 = pd.DataFrame(all_sat_chosen)
+    #df3 = df3.fillna(0).astype(int)
     df3.index = df3.index.to_series().apply(lambda x: x.to_pydatetime().time())
     df3.to_csv('Result_CSV/' + nameFile_int + '_' + systemName + '_' + IDsystem + '_SNR.csv', index=True)
 
@@ -379,11 +396,12 @@ if flag_GSA != 0 or flag_GSV != 0:
         if myList:
             x, y = zip(*myList)
             ax.plot(x, y, marker='o', markersize=2)
-
+    
+    interval_time_of_flight = time_of_flight//8
     # Formatter для отображения времени  
     time_format = mdates.DateFormatter('%H:%M:%S')
-    # Locator для определения интервала в 2 минуты
-    locator = MinuteLocator(interval=2)
+    # Locator для определения интервала 
+    locator = SecondLocator(interval=interval_time_of_flight)
     ax.xaxis.set_major_locator(locator) # Задаем интервал
     ax.xaxis.set_major_formatter(time_format)
     
@@ -399,7 +417,7 @@ if flag_GSA != 0 or flag_GSV != 0:
     
     nameFileSaved = nameFile_int + '_' + systemName + '_' + IDsystem + '.png'
     plt.savefig('Result_SNR/' + nameFileSaved, dpi=500)
-    plt.show()
+    #plt.show()
     plt.close()
 
     
