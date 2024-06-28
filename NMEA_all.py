@@ -38,7 +38,7 @@ files_in_path = os.listdir(path)
 format_date_time = "%H:%M:%S.%f"
 
 def parse_multiple_formats(date_str):
-    formats = ["%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%Y/%m/%d %H:%M:%S", "%H:%M:%S.%f"] 
+    formats = ["%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%Y/%m/%d %H:%M:%S", "%H:%M:%S.%f", "%H:%M:%S"] 
     
     for fmt in formats:
         try:
