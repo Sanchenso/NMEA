@@ -31,6 +31,7 @@ functions:
 
 - launches the NMEA.py with configurations "GPS L1", "GPS L2", "BeiDou L1", "BeiDou L2".
 - parses all logs with the dat extension in the directory
+- add one picture with all graphics in folder "Result_SNR_4" and show this picture
 
 usage example: python3 NMEA_all.py
 
