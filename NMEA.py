@@ -139,7 +139,7 @@ SYSTEMS = {
     },
     'SBAS': {
         'satellite_system': '$GPGSV',
-        'gsa_id_system': '01',
+        'gsa_id_system': '0',
         'gsa_id_signal_L1': {
             '1': 'signal_id_L1',  # 1574.42 MHz
         },
@@ -149,13 +149,13 @@ SYSTEMS = {
         'possible_sat_in_system': list(range(33, 65)) + list(range(152, 159)),
     },
     'QZSS': {
-        'satellite_system': '$GPGSV',
+        'satellite_system': '$GQGSV',
         'gsa_id_system': '5',
         'gsa_id_signal_L1': {
             '1': 'signal_id_L1'  # 1574.42 MHz
         },
         'gsa_id_signal_L2': {
-            '7': 'signal_id_L2'  # 1227.6 MHz
+            '6': 'signal_id_L2'  # 1227.6 MHz
         },
         'possible_sat_in_system': list(range(93, 100)) + list(range(193, 198)),
     },
@@ -183,34 +183,35 @@ MinElevation = 10
 minSNR = 20
 
 # Проверка входных аргументов. Пример "ally_2J_channel_gnss_126.dat Glonass L2"
-try:
-    system = SYSTEMS.get(systemName)
-    if IDsystem == 'L1':
-        GSA_idSignal = system['gsa_id_signal_L1']
-    if IDsystem == 'L2':
-        GSA_idSignal = system['gsa_id_signal_L2']
-    if IDsystem == 'L5':
-        GSA_idSignal = system['gsa_id_signal_L5']
+def checkSystem(systemName):
+    try:
+        system = SYSTEMS.get(systemName)
+        if IDsystem == 'L1':
+            GSA_idSignal = system['gsa_id_signal_L1']
+        if IDsystem == 'L2':
+            GSA_idSignal = system['gsa_id_signal_L2']
+        if IDsystem == 'L5':
+            GSA_idSignal = system['gsa_id_signal_L5']
 
-    if not system or IDsystem not in ['L1', 'L2', 'L5']:
-        raise KeyError
+        if not system or IDsystem not in ['L1', 'L2', 'L5']:
+            raise KeyError
 
-    satelliteSystem = system['satellite_system']
-    GSA_idSystem = system['gsa_id_system']
-    inUse_sat_sys = inUse_sat[systemName]
-    PossibleSatInSystem = system['possible_sat_in_system']
-    signal_keys = [key for key in system.keys() if key.startswith('gsa_id_signal_')]
-    for signal_key in signal_keys:
-        GSA_idSignal_1 = system[signal_key]
-        for signal_id, signal_name in GSA_idSignal_1.items():
-            signal_mapping[signal_id] = signal_name
-            print(signal_mapping)
-except KeyError:
-    print('Naming error!')
-    print('Please choose from among the following:')
-    print('GPS, Glonass, BeiDou, Galileo')
-    print('L1, L2 or L5')
-
+        satelliteSystem = system['satellite_system']
+        GSA_idSystem = system['gsa_id_system']
+        inUse_sat_sys = inUse_sat[systemName]
+        PossibleSatInSystem = system['possible_sat_in_system']
+        signal_keys = [key for key in system.keys() if key.startswith('gsa_id_signal_')]
+        for signal_key in signal_keys:
+            GSA_idSignal_1 = system[signal_key]
+            for signal_id, signal_name in GSA_idSignal_1.items():
+                signal_mapping[signal_id] = signal_name
+    except KeyError:
+        print('Naming error!')
+        print('Please choose from among the following:')
+        print('GPS, Glonass, BeiDou, Galileo')
+        print('L1, L2 or L5')
+    return GSA_idSignal, satelliteSystem, GSA_idSystem, inUse_sat_sys, PossibleSatInSystem
+print(type(inUse_sat[systemName]))
 
 # ф-я заполнение словаря all_sat, включающее L1, L2 и др
 def SatSnr(snr_dict, lineSat, lineSnr):
@@ -284,9 +285,12 @@ def parserGGA(line_from_file, msg):
 
 
 def parserGSA(line_from_file):
+    for i in system_mapping:
+        if int(line_from_file[-3]) == int(i):
+            systemName = system_mapping[i]
     for i in range(3, len(line_from_file) - 6):
         if line_from_file[i] != '':
-            inUse_sat_sys.append(int(line_from_file[i]))
+            inUse_sat[systemName].append(int(line_from_file[i]))
     return
 
 
@@ -396,7 +400,7 @@ with open(nameFile, encoding="CP866") as inf2:
                         if not idSystem in dictIdSystems and len(newLine) > 20:
                             idSystem = newLine[-3]
                             dictIdSystems[idSystem] = [system_mapping[idSystem]]
-                        if newLine[-3] == GSA_idSystem:
+                        if newLine[-3] in system_mapping:
                             flags["GSA"] = True
                             parserGSA(newLine)
                             break
