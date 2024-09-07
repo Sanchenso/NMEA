@@ -403,6 +403,7 @@ with open(nameFile, encoding="CP866") as inf2:
                         if newLine[-3] in system_mapping:
                             flags["GSA"] = True
                             parserGSA(newLine)
+
                             break
                     elif newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine):
                         idSignal = newLine[-3]
