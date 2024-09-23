@@ -1,2 +1,32 @@
-35mm_patch_d10p_reference_outdrone_GPS_L2 22.5 0 12494 0 2499
-35mm_patch_d10p_reference_outdrone_GPS_L2 22.5 0 12494 0 2499
+test_GPS_L1  0 25 0 5
+test_GPS_L1  0 25 0 5
+test_GPS_L1  0 25 0 5
+test_GPS_L1  0 25 0 5
+test_GPS_L1  0 25 0 5
+test_GPS_L1  0 25 0 5
+test_GPS_L1  0 25 0 5
+test_test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 25 0 5
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4
+test__  0 13 0 4

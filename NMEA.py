@@ -9,9 +9,9 @@ import matplotlib.dates as mdates
 from matplotlib.dates import SecondLocator
 
 nameFile = sys.argv[1]  # for example 'test.ubx'
-systemName = sys.argv[2]  # for example 'GPS'
-IDsystem = sys.argv[3]  # for example 'L1'
-print(nameFile, systemName, IDsystem)
+#systemName = sys.argv[2]  # for example 'GPS'
+#IDsystem = sys.argv[3]  # for example 'L1'
+#print(nameFile, systemName, IDsystem)
 nameFile_int, nameFile_ext = os.path.splitext(nameFile)  # name for example test, and extension name for example '.ubx'
 
 
@@ -27,16 +27,15 @@ def create_dir_if_not_exists(directory):
 create_dir_if_not_exists('Result_SNR')
 create_dir_if_not_exists('Result_CSV')
 
-data = {}
-new_Data = {}
+
+
 all_sat = {}
 all_satElevation = {}
-altitudeGGA = {}
+dictGGA = {}
 dictRMC = {}
 dictTXT = {}
 dictIdSystems = {}
-dictIdSignal = {}
-signal_mapping = {}
+
 
 inUse_sat = {
     "GPS": [],
@@ -72,101 +71,77 @@ SYSTEMS = {
     'GPS': {
         'satellite_system': '$GPGSV',
         'gsa_id_system': '1',
-        'gsa_id_signal_L1': {
-            '1': 'SIGID_GPS_L1CA',  # 1575.42 MHz
-            '2': 'SIGID_GPS_L1P',
-            '3': 'SIGID_GPS_L1M',
-            '9': 'SIGID_GPS_L1C'
-        },
-        'gsa_id_signal_L2': {
-            '5': 'SIGID_GPS_L2CM',  # 1227.60 MHz
-            '6': 'SIGID_GPS_L2CL'
-        },
-        'gsa_id_signal_L5': {
-            '7': 'SIGID_GPS_L5I',  # 1176.45 MHz
-            '8': 'SIGID_GPS_L5Q'
-        },
-        'gsa_id_signal_L6': {
-            '11': 'SIGID_GPS_L6'
+        'gsa_id_signal': {
+            '1': 'SIGID_GPS_L1CA',  # L1 1575.42 MHz
+            '2': 'SIGID_GPS_L1P',   # L1
+            '3': 'SIGID_GPS_L1M',   # L1
+            '9': 'SIGID_GPS_L1C',   # L1
+            '5': 'SIGID_GPS_L2CM',  # L2 1227.60 MHz
+            '6': 'SIGID_GPS_L2CL',  # L2
+            '7': 'SIGID_GPS_L5I',   # L5 1176.45 MHz
+            '8': 'SIGID_GPS_L5Q',   # L5
+            '11': 'SIGID_GPS_L6'    # L6
         },
         'possible_sat_in_system': list(range(1, 33)),
     },
     'Glonass': {
         'satellite_system': '$GLGSV',
         'gsa_id_system': '2',
-        'gsa_id_signal_L1': {
-            '1': 'SIGID_GLN_G1CA'  # 1602.0–1615.5 MHz
-        },
-        'gsa_id_signal_L2': {
-            '3': 'SIGID_GLN_G2CA',  # 1246.0–1256.5 MHz
+        'gsa_id_signal': {
+            '1': 'SIGID_GLN_G1CA',  # L1 1602.0–1615.5 MHz
+            '3': 'SIGID_GLN_G2CA'  # L2 1246.0–1256.5 MHz
         },
         'possible_sat_in_system': list(range(65, 97)) + list(range(1, 29)),
     },
     'BeiDou': {
         'satellite_system': ['$GBGSV', '$BDGSV'],
         'gsa_id_system': '4',
-        'gsa_id_signal_L1': {
-            '1': 'SIGID_BDS_B1I',
-            '9': 'SIGID_BDS_B1C'  # 1575.42 MHz
-        },
-        'gsa_id_signal_L2': {
-            '2': 'SIGID_BDS_B2I',  # 1268.52 MHz
-            'B': 'SIGID_BDS_HZ'
-        },
-        'gsa_id_signal_L5': {
-            '4': 'SIGID_BDS_B2A',  # 1176.45 MHz
-            '5': 'SIGID_BDS_hz'
-        },
-        'gsa_id_signal_L3': {
-            '3': 'SIGID_BDS_B3I'  #
+        'gsa_id_signal': {
+            '1': 'SIGID_BDS_B1I',   # L1
+            '9': 'SIGID_BDS_B1C',    # L1 1575.42 MHz
+            '2': 'SIGID_BDS_B2I',   # L2 1268.52 MHz
+            'B': 'SIGID_BDS_HZ',    # L2
+            '4': 'SIGID_BDS_B2A',   # L5 1176.45 MHz
+            '5': 'SIGID_BDS_hz',     # L5
+            '3': 'SIGID_BDS_B3I'    # L3
         },
         'possible_sat_in_system': list(range(1, 64)) + list(range(201, 264)),
     },
     'Galileo': {
         'satellite_system': '$GAGSV',
         'gsa_id_system': '3',
-        'gsa_id_signal_L1': {
-            '6': 'SIGID_GAL_L1A',  # 1575.42 MHz
-            '7': 'SIGID_GAL_L1BC'
-        },
-        'gsa_id_signal_L2': {
-            '2': 'SIGID_GAL_E5B',  # 1278.75 MHz
-        },
-        'gsa_id_signal_L5': {
-            '1': 'SIGID_GAL_E5A'  # 1176.45 MHz
+        'gsa_id_signal': {
+            '6': 'SIGID_GAL_L1A',   # L1 1575.42 MHz
+            '7': 'SIGID_GAL_L1BC',   # L1
+            '2': 'SIGID_GAL_E5B',   # L2 1278.75 MHz
+            '1': 'SIGID_GAL_E5A'    #  L5 1176.45 MHz
         },
         'possible_sat_in_system': list(range(101, 137)) + list(range(1, 37)) + list(range(301, 337)),
     },
     'SBAS': {
         'satellite_system': '$GPGSV',
         'gsa_id_system': '0',
-        'gsa_id_signal_L1': {
-            '1': 'signal_id_L1',  # 1574.42 MHz
-        },
-        'gsa_id_signal_L2': {
-            '7': 'signal_id_L2'
+        'gsa_id_signal': {
+            '1': 'signal_id_L1',    # L1 1574.42 MHz
+            '7': 'signal_id_L2'     # L2
         },
         'possible_sat_in_system': list(range(33, 65)) + list(range(152, 159)),
     },
     'QZSS': {
         'satellite_system': '$GQGSV',
         'gsa_id_system': '5',
-        'gsa_id_signal_L1': {
-            '1': 'signal_id_L1'  # 1574.42 MHz
-        },
-        'gsa_id_signal_L2': {
-            '6': 'signal_id_L2'  # 1227.6 MHz
+        'gsa_id_signal': {
+            '1': 'signal_id_L1',     # L1 1574.42 MHz
+            '6': 'signal_id_L2'     # L2 1227.6 MHz
         },
         'possible_sat_in_system': list(range(93, 100)) + list(range(193, 198)),
     },
     'IRNSS': {
         'satellite_system': '$GPGSV',
         'gsa_id_system': '6',
-        'gsa_id_signal_L1': {
-            '1': 'signal_id_L1'
-        },
-        'gsa_id_signal_L2': {
-            '7': 'signal_id_L2'
+        'gsa_id_signal': {
+            '1': 'signal_id_L1',     # L1
+            '7': 'signal_id_L2'     # L2
         },
         'possible_sat_in_system': list(range(1, 19)),
     }
@@ -174,15 +149,15 @@ SYSTEMS = {
 
 possibleNMEA = ['$GPGGA', '$GPGSA', '$GPGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BDGSV', '$GBGSV', '$GAGSV', '$GNRMC',
                 '$GNGGA', '$GNTXT']
-
 system_mapping = {details['gsa_id_system']: system_name for system_name, details in SYSTEMS.items()}
-
+gsv_mapping = {'$GPGSV':'GPS', '$GLGSV':'Glonass', '$BDGSV':'BeiDou', '$GBGSV':'BeiDou', '$GAGSV':'Galileo'}
 # значение elevation, значения ниже этого в рассчете не участует
 MinElevation = 10
 # значение SNR, значения ниже этого в рассчете не участуют
 minSNR = 20
 
 # Проверка входных аргументов. Пример "ally_2J_channel_gnss_126.dat Glonass L2"
+'''
 def checkSystem(systemName):
     try:
         system = SYSTEMS.get(systemName)
@@ -211,47 +186,68 @@ def checkSystem(systemName):
         print('GPS, Glonass, BeiDou, Galileo')
         print('L1, L2 or L5')
     return GSA_idSignal, satelliteSystem, GSA_idSystem, inUse_sat_sys, PossibleSatInSystem
-print(type(inUse_sat[systemName]))
+'''
 
 # ф-я заполнение словаря all_sat, включающее L1, L2 и др
-def SatSnr(snr_dict, lineSat, lineSnr):
+def SatSnr(system, systemID, snr_dict, lineSat, lineSnr):
     satN = int(newLine[lineSat].strip())
     snrN = newLine[lineSnr].strip()
     if snrN == '':
         value = None
     else:
         value = int(snrN)
-    snr_dict.setdefault(satN, {})[time] = value
+    if system not in snr_dict:
+        snr_dict[system] = {}
+    if systemID not in snr_dict[system]:
+        snr_dict[system][systemID] = {}
+    if satN not in snr_dict[system][systemID]:
+        snr_dict[system][systemID][satN] = {}
+    snr_dict[system][systemID][satN][time] = value
     return satN, value
 
 
 # ф-я заполнение словаря satElevation, включающее L1, L2 и др
-def SatElevation(elevation_dict, lineSat, lineElev):
+def SatElevation(system, systemID, elevation_dict, lineSat, lineElev):
     satN = int(newLine[lineSat].strip())
     elevN = newLine[lineElev].strip()
     if elevN == '':
         value = None
     else:
         value = int(elevN)
-    elevation_dict.setdefault(satN, {})[time] = value
+    if system not in elevation_dict:
+        elevation_dict[system] = {}
+    if systemID not in elevation_dict[system]:
+        elevation_dict[system][systemID] = {}
+    if satN not in elevation_dict[system][systemID]:
+        elevation_dict[system][systemID][satN] = {}
+    elevation_dict[system][systemID][satN][time] = value
     return satN, value
 
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (только используемые спутники)
-def parserGSV_inUse(line_from_file, inuse_sat_sys):
-    if line_from_file[-3] in GSA_idSignal:
-        satElevation = all_satElevation
-        satSnr = all_sat
-        if line_from_file[5] != "*" :
-            for i in range(4, 20, 4):
-                if line_from_file.index('*') > i + 3:
-                    if len(str(line_from_file[i])) < 3 and int(line_from_file[i]) in inuse_sat_sys and int(
-                            line_from_file[i]) in PossibleSatInSystem:
-                        SatElevation(satElevation, i, i + 1)
-                        SatSnr(satSnr, i, i + 3)
+def parserGSV_inUse(line_from_file, inuse_sat, flags):
+    line_sysID = line_from_file[-3]
+    for gsv in gsv_mapping:
+        if line_from_file[0] == gsv:
+            system = gsv_mapping[gsv]
+            if line_sysID in SYSTEMS[system]['gsa_id_signal']:
+                systemID = SYSTEMS[system]['gsa_id_signal'][line_sysID]
+                satElevation = all_satElevation
+                satSnr = all_sat
+                if line_from_file[5] != "*" :
+                    for i in range(4, 20, 4):
+                        if line_from_file.index('*') > i + 3:
+                            if len(str(line_from_file[i])) < 3 and int(line_from_file[i]) in inuse_sat[system]:
+                                print(line_from_file)
+                                SatElevation(system, systemID, satElevation, i, i + 1)
+                                SatSnr(system, systemID, satSnr, i, i + 3)
+                            else:
+                                print(line_from_file)
+                                print(int(line_from_file[i]))
+
     return
 
-
+'''
 # функция парсера сообщений GSV вывод SNR (все видимые спутники)
 def parserGSV(line_from_file):
     if line_from_file[-3].isdigit() and line_from_file[-3] in GSA_idSignal:
@@ -265,7 +261,7 @@ def parserGSV(line_from_file):
                         SatElevation(satElevation, i, i + 1)
                         SatSnr(satSnr, i, i + 3)
     return
-
+'''
 
 def parserRMC(line_from_file, msg):
     time1 = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
@@ -279,7 +275,7 @@ def parserGGA(line_from_file, msg):
     time = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
     listTimeGGA.append(line_from_file[1])
     formatted_output = time.strftime('%H:%M:%S.%f')
-    altitudeGGA[formatted_output] = float(check_argument(msg.altitude)), float(
+    dictGGA[formatted_output] = float(check_argument(msg.altitude)), float(
         check_argument(msg.age_gps_data)), int(msg.gps_qual)
     return time
 
@@ -392,7 +388,8 @@ with open(nameFile, encoding="CP866") as inf2:
                     if '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
                         flags["GGA"] = True
                         countGGA += 1
-                        inUse_sat_sys = []
+                        for i in inUse_sat:
+                            inUse_sat[i]= []
                         time = parserGGA(newLine, msg)
                         break
                     elif '$GNGSA' in newLine and countGGA >= 1 and newLine[2] == '3' and chksum_nmea(newLine):
@@ -404,16 +401,10 @@ with open(nameFile, encoding="CP866") as inf2:
                             flags["GSA"] = True
                             parserGSA(newLine)
                             break
-                    elif newLine[0] in satelliteSystem and countGGA >= 1 and chksum_nmea(newLine):
+                    elif newLine[0] in gsv_mapping and countGGA >= 1 and chksum_nmea(newLine):
                         idSignal = newLine[-3]
-                        if not idSignal in dictIdSignal and (len(newLine) - 2) % 4 != 0:
-                            print(newLine)
-                            print(dictIdSignal)
-                            print(signal_mapping)
-                            print(idSignal)
-                            dictIdSignal[idSignal] = [signal_mapping[idSignal]]
                         if flags["GSA"]:
-                            parserGSV_inUse(newLine, inUse_sat_sys)
+                            parserGSV_inUse(newLine, inUse_sat, flags)
                         else:
                             flags["GSV"] = True
                             parserGSV(newLine)
@@ -429,6 +420,7 @@ with open(nameFile, encoding="CP866") as inf2:
                 except pynmea2.ParseError:
                     countErrorChk += 1
                     continue
+
 if flags["GGA"]:
     # подсчет времени по сообщениям GGA
     last = datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
@@ -436,27 +428,43 @@ if flags["GGA"]:
     time_of_flight: int = int((last - first).total_seconds())
     # print('DifTime from first and last GGA:', end=' ')
     # print(time_of_flight, 'sec')
-    df = pd.DataFrame(list(altitudeGGA.items()), columns=["GPS_Time", "Values"])
-    df[["Altitude", "rtkAGE", "Status"]] = pd.DataFrame(df.Values.tolist(), index=df.index)
-    df.drop(["Values"], axis=1, inplace=True)
-    df.to_csv(f'Result_CSV/{nameFile_int}_GGA.csv', index=False, escapechar="\\")
+    file_name = os.path.join('Result_CSV', f'{nameFile_int}_GGA.csv')
+    with open(file_name, 'w', encoding='utf-8') as file:
+        file.write("GPS_Time,Altitude,rtkAGE,Status\n")
+        for time, values in dictGGA.items():
+            line = f"{time},{values[0]},{values[1]},{values[2]}\n"
+            file.write(line)
 
 if flags["RMC"]:
-    df2 = pd.DataFrame(list(dictRMC.items()), columns=["GPS_Time", "Values"])
-    df2[["status", "mode_indicator", "nav_status", "Speed"]] = pd.DataFrame(df2.Values.tolist(), index=df2.index)
-    df2.drop(["Values"], axis=1, inplace=True)
-    df2.to_csv(f'Result_CSV/{nameFile_int}_RMC.csv', index=False, escapechar="\\")
+    file_name = os.path.join('Result_CSV', f'{nameFile_int}_RMC.csv')
+    with open(file_name, 'w', encoding='utf-8') as file:
+        file.write("GPS_Time,status,mode_indicator,nav_status,Speed\n")
+        for time, values in dictRMC.items():
+            line = f"{time},{values[0]},{values[1]},{values[2]},{values[3]}\n"
+            file.write(line)
 
 if flags["TXT"]:
-    df3 = pd.DataFrame(list(dictTXT.items()), columns=["GPS_Time", "Values"])
-    values_df = pd.DataFrame(df3['Values'].tolist())
-    df3.drop(columns=['Values'], inplace=True)
-    df3 = df3.join(values_df)
-    df3.to_csv(f'Result_CSV/{nameFile_int}_TXT.csv', index=False, escapechar="\\")
+    file_name = os.path.join('Result_CSV', f'{nameFile_int}_TXT.csv')
+    max_len = max(len(values) for values in dictTXT.values())
+    with open(file_name, 'w', encoding='utf-8') as file:
+        header = "GPS_Time," + ",".join([f"Value_{i + 1}" for i in range(max_len)]) + "\n"
+        file.write(header)
+        for time, values in dictTXT.items():
+            values_str = ",".join(map(str, values + [None] * (max_len - len(values))))  # Заполнение недостающих значений
+            line = f"{time},{values_str}\n"
+            file.write(line)
+
+    #df3 = pd.DataFrame(list(dictTXT.items()), columns=["GPS_Time", "Values"])
+    #values_df = pd.DataFrame(df3['Values'].tolist())
+    #df3.drop(columns=['Values'], inplace=True)
+    #df3 = df3.join(values_df)
+    #df3.to_csv(f'Result_CSV/{nameFile_int}_TXT.csv', index=False, escapechar="\\")
 
 if flags["GSA"] or flags["GSV"]:
-    p = average(all_sat)
-    m = average(all_satElevation)
+    for sysName in all_sat:
+        for sysID in all_sat[sysName]:
+            p = average(all_sat[sysName][sysID])
+            m = average(all_satElevation[sysName][sysID])
     for i in range(len(p[0])):
         if p[1][i] > ((last - first).total_seconds() * 0.5) and p[0][i] > minSNR:
             averageSNR += p[0][i]
@@ -472,16 +480,16 @@ if flags["GSA"] or flags["GSV"]:
     Average = 0
     schet = 0
     gh = 0
-    if countSNR1 != 0 and averageSNR != 0:
+    if countSNR1 == 0 and averageSNR == 0:
     # дозапись осреденных в файл test.txt - для скрипта
         with open('Result_SNR/test.txt', 'a') as f1:
             f1.write(nameFile_int)
             f1.write('_')
-            f1.write(systemName)
+            #f1.write(systemName)
             f1.write('_')
-            f1.write(IDsystem)
+            #f1.write(IDsystem)
             f1.write(' ')
-            f1.write(str(round((averageSNR / countSNR1), 1)))
+            #f1.write(str(round((averageSNR / countSNR1), 1)))
             f1.write(' ')
             f1.write(str(gh))
             f1.write(' ')
@@ -492,13 +500,13 @@ if flags["GSA"] or flags["GSV"]:
             f1.write(str(round((last - first).total_seconds())))  # DifTime from first and last GGA
             f1.write('\n')
 
-        df3 = pd.DataFrame(all_sat)
+        df3 = pd.DataFrame(all_sat['GPS']['SIGID_GPS_L1CA'])
         #df3 = df3.fillna(0).astype(int)
         df3.index = df3.index.to_series().apply(lambda x: x.to_pydatetime().time())
-        df3.to_csv('Result_CSV/' + nameFile_int + '_' + systemName + '_' + IDsystem + '_SNR.csv', index=True)
+        df3.to_csv('Result_CSV/' + nameFile_int + '_' + 'systemName' + '_' + 'IDsystem' + '_SNR.csv', index=True)
 
         # вывод графика и сохранение в jpeg
-        result = all_sat.values()
+        result = all_sat['GPS']['SIGID_GPS_L1CA'].values()
         # вывод и сохранение графика в формате jpeg
         fig, ax = plt.subplots(figsize=(12, 8))
 
@@ -508,32 +516,32 @@ if flags["GSA"] or flags["GSV"]:
             if myList:
                 x, y = zip(*myList)
                 ax.plot(x, y, marker='o', markersize=2)
-
+        print()
         interval_time_of_flight = time_of_flight // 8
         # Formatter для отображения времени
         time_format = mdates.DateFormatter('%H:%M:%S')
         # Locator для определения интервала
         locator = SecondLocator(interval=interval_time_of_flight)
-        ax.xaxis.set_major_locator(locator)  # Задаем интервал
+        #ax.xaxis.set_major_locator(locator)  # Задаем интервал
         ax.xaxis.set_major_formatter(time_format)
 
         ax.set_xlabel('Time', fontsize=14)
         ax.set_ylabel('SNR, dBHz', fontsize=14)
         ax.text(0.01, 0.98, 'average SNR:', fontsize=14, transform=ax.transAxes, verticalalignment='top')
-        ax.text(0.01, 0.94, f'{round((averageSNR / countSNR1), 1)} dBHz', fontsize=14, transform=ax.transAxes,
-                verticalalignment='top')
-        ax.set_title(nameFile + ", " + systemName + '_' + IDsystem, fontsize=14)
+        #ax.text(0.01, 0.94, f'{round((averageSNR / countSNR1), 1)} dBHz', fontsize=14, transform=ax.transAxes,
+         #       verticalalignment='top')
+        ax.set_title(nameFile + ", " + 'systemName' + '_' + 'IDsystem', fontsize=14)
         ax.set_ylim(10, 60)
         ax.grid(color='black', linestyle='--', linewidth=0.2)
         ax.legend([], [], loc="upper left", frameon=False)
         ax.legend(all_sat.keys(), loc='upper right')
 
-        nameFileSaved = nameFile_int + '_' + systemName + '_' + IDsystem + '.png'
+        nameFileSaved = nameFile_int + '_' + 'systemName' + '_' + 'IDsystem' + '.png'
         plt.savefig('Result_SNR/' + nameFileSaved, dpi=100)
-        print('systems in log:')
-        print(dictIdSystems)
-        print('signal in system:', systemName)
-        print(dictIdSignal)
+        #print('systems in log:')
+        #print(dictIdSystems)
+        #print('signal in system:', systemName)
+        #print(dictIdSignal)
         plt.show()
         plt.close()
     else:
