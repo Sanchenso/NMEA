@@ -1,9 +1,9 @@
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from datetime import timedelta, datetime
-from matplotlib.dates import SecondLocator
+#import matplotlib.pyplot as plt
+#import matplotlib.dates as mdates
+#from datetime import timedelta, datetime
+#from matplotlib.dates import SecondLocator
 import subprocess
 
 dfGPSL1 = pd.DataFrame()
@@ -33,7 +33,7 @@ for i in files:
         #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Galileo L2", shell=True))
         #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Galileo L5", shell=True))
         subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GPS' + ' ' + 'L1', shell=True)
-        subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'BeiDou' + ' ' + 'L1', shell=True)
+        #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'BeiDou' + ' ' + 'L1', shell=True)
         #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GPS' + ' ' + 'L2', shell=True)
         #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'BeiDou' + ' ' + 'L2', shell=True)
 # Wait for all processes to complete
