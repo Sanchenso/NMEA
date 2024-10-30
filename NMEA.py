@@ -9,7 +9,7 @@ from matplotlib.dates import SecondLocator
 
 nameFile = sys.argv[1]  # for example 'test.ubx'
 
-#systemName = sys.argv[2]  # for example 'GPS'
+systemGSV = sys.argv[2] if len(sys.argv) > 2 else None
 #IDsystem = sys.argv[3]  # for example 'L1'
 #print(nameFile, systemName, IDsystem)
 nameFile_int, nameFile_ext = os.path.splitext(nameFile)  # name for example test, and extension name for example '.ubx'
@@ -27,8 +27,10 @@ def create_dir_if_not_exists(directory):
 create_dir_if_not_exists('Result_SNR')
 create_dir_if_not_exists('Result_CSV')
 
-all_sat = {}
+all_satSNR = {}
+not_inuse_satSNR = {}
 all_satElevation = {}
+not_inuse_satElevation = {}
 dictGGA = {}
 dictRMC = {}
 dictTXT = {}
@@ -223,39 +225,26 @@ def SatElevation(system, systemID, elevation_dict, lineSat, lineElev):
 
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (только используемые спутники)
-def parserGSV_inUse(line_from_file, inuse_sat):
+def parserGSV_inUse(line_from_file, inuse_sat, all_satSNR, not_inuse_satSNR):
     line_sysID = line_from_file[-3]
     for gsv in gsv_mapping:
         if line_from_file[0] == gsv:
             system = gsv_mapping[gsv]
             if line_sysID in SYSTEMS[system]['gsa_id_signal']:
                 systemID = SYSTEMS[system]['gsa_id_signal'][line_sysID]
-                satElevation = all_satElevation
-                satSnr = all_sat
                 if line_from_file[5] != "*":
                     for i in range(4, 20, 4):
-                        if line_from_file.index('*') > i + 3:
-                            if len(str(line_from_file[i])) < 3 and int(line_from_file[i]) in inuse_sat[system]:
-                                SatElevation(system, systemID, satElevation, i, i + 1)
-                                SatSnr(system, systemID, satSnr, i, i + 3)
+                        if line_from_file.index('*') > i + 3 and len(str(line_from_file[i])) < 3:
+                            sat_number = int(line_from_file[i])
+                            if sat_number in inuse_sat.get(system, []):
+                                # Если спутник в списке inuse_sat, добавляем в all_satSNR
+                                SatSnr(system, systemID, all_satSNR, i, i + 3)
+                                SatElevation(system, systemID, all_satElevation, i, i + 1)
+                            else:
+                                # Если спутника нет в списке inuse_sat, добавляем в not_inuse_satSNR
+                                SatSnr(system, systemID, not_inuse_satSNR, i, i + 3)
+                                SatElevation(system, systemID, not_inuse_satElevation, i, i + 1)
     return
-
-
-
-# функция парсера сообщений GSV вывод SNR (все видимые спутники)
-def parserGSV(line_from_file):
-    if line_from_file[-3].isdigit():
-        satElevation = all_satElevation
-        satSnr = all_sat
-        if line_from_file[5] != "*":
-            for i in range(4, 20, 4):
-                if line_from_file.index('*') > i + 3:
-                    if line_from_file[i] != '' and len(str(line_from_file[i])) < 3 and int(
-                            line_from_file[i]) in PossibleSatInSystem:
-                        SatElevation(satElevation, i, i + 1)
-                        SatSnr(satSnr, i, i + 3)
-    return
-
 
 
 def parserRMC(line_from_file, msg):
@@ -366,6 +355,13 @@ def check_argument(arg):
         return default_value
 
 
+def print_alert(message):
+    border = '*' * (len(message) + 4)
+    print("\n" + border)
+    print(f"* {message} *")
+    print(border + "\n")
+
+
 # Base перебор сообщений из файла
 with open(nameFile, encoding="CP866") as inf2:
     for line in inf2:
@@ -379,31 +375,38 @@ with open(nameFile, encoding="CP866") as inf2:
                 try:
                     asterisk_index = line.find('*')
                     newLine = line[start_index::].replace('*', ',*,').split(',')
-
                     msg = pynmea2.parse(line[start_index:].strip())
+
                     if '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
                         flags["GGA"] = True
                         countGGA += 1
                         for i in inUse_sat:
                             inUse_sat[i] = []
-                        time = parserGGA(newLine, msg)
+                        if len(newLine) == 17:
+                            time = parserGGA(newLine, msg)
+                        else:
+                            countErrorChk += 1
                         break
-                    elif '$GNGSA' in newLine and countGGA >= 1 and newLine[2] == '3' and chksum_nmea(newLine):
-                        idSystem = newLine[-3]
-                        if not idSystem in dictIdSystems and len(newLine) > 20:
+                    elif '$GNGSA' in newLine:
+                        if len(newLine) == 21 and countGGA >= 1 and newLine[2] == '3' and chksum_nmea(newLine):
                             idSystem = newLine[-3]
-                            dictIdSystems[idSystem] = [system_mapping[idSystem]]
-                        if newLine[-3] in system_mapping:
-                            flags["GSA"] = True
-                            parserGSA(newLine)
+                            if not idSystem in dictIdSystems and len(newLine) > 20:
+                                idSystem = newLine[-3]
+                                dictIdSystems[idSystem] = [system_mapping[idSystem]]
+                            if newLine[-3] in system_mapping:
+                                flags["GSA"] = True
+                                parserGSA(newLine)
+                                break
+                        else:
+                            countErrorChk += 1
                             break
                     elif newLine[0] in gsv_mapping and countGGA >= 1 and chksum_nmea(newLine):
                         idSignal = newLine[-3]
                         if flags["GSA"]:
-                            parserGSV_inUse(newLine, inUse_sat)
+                            parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                         else:
                             flags["GSV"] = True
-                            parserGSV(newLine)
+                            parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                         break
                     elif '$GNRMC' in newLine and countGGA >= 1 and len(newLine) > 4:
                         flags["RMC"] = True
@@ -456,14 +459,20 @@ if flags["TXT"]:
     #df3.drop(columns=['Values'], inplace=True)
     #df3 = df3.join(values_df)
     #df3.to_csv(f'Result_CSV/{nameFile_int}_TXT.csv', index=False, escapechar="\\")
+print('Errors:', countErrorChk)
+print()
+print(systemGSV)
+if flags["GSV"] or systemGSV == 'GSV':
+    print_alert("NOT GSA MESSAGE!!!!")
+    all_satSNR = not_inuse_satSNR
+    all_satElevation = not_inuse_satElevation
+
 if flags["GSA"] or flags["GSV"]:
-    for sysName in all_sat:
-        for sysID in all_sat[sysName]:
-            print(sysID)
+    for sysName in all_satSNR:
+        for sysID in all_satSNR[sysName]:
             averageSNR = 0
             countSNR1 = 0
-
-            p = average(all_sat[sysName][sysID])
+            p = average(all_satSNR[sysName][sysID])
             m = average(all_satElevation[sysName][sysID])
 
             for i in range(len(p[0])):
@@ -483,15 +492,33 @@ if flags["GSA"] or flags["GSV"]:
                         f"{nameFile_int}_{sysName}_{sysID} {avg_snr} {countGGA} {countErrorChk} {round((last - first).total_seconds())}\n")
 
             # Сохранение данных в CSV-файл
-            csv_filename = f'Result_CSV/{nameFile_int}_{sysName}_{sysID}_SNR.csv'
-            with open(csv_filename, 'w') as csv_file:
-                csv_file.write('Time,SNR\n')
-                for t, snr in zip(p[1], p[0]):
-                    csv_file.write(f'{t},{snr}\n')
+            for system, system_data in all_satSNR.items():
+                for systemID, sats_data in system_data.items():
+                    # Формируем имя файла для каждой комбинации system и systemID
+                    csv_filename = f'Result_CSV/{nameFile_int}_{system}_{systemID}_SNR.csv'
+                    with open(csv_filename, 'w', encoding='utf-8') as file:
+                        # Записываем заголовки: Time и номера спутников
+                        sat_numbers = sorted(sats_data.keys())
+                        headers = "GPS_Time," + ",".join(map(str, sat_numbers)) + "\n"
+                        file.write(headers)
+
+                        # Собираем все уникальные временные метки
+                        all_times = set()
+                        for time_data in sats_data.values():
+                            all_times.update(time_data.keys())
+
+                        # Пишем данные в файл, упорядочив по времени
+                        for time in sorted(all_times):
+                            time_str = time.strftime("%H:%M:%S")
+                            values_str = ",".join(
+                                str(sats_data[satN].get(time, '')) for satN in sat_numbers
+                            )
+                            line = f"{time_str},{values_str}\n"
+                            file.write(line)
 
             # Установка графика и сохранение в JPEG
             fig, ax = plt.subplots(figsize=(12, 8))
-            result = all_sat[sysName][sysID].values()
+            result = all_satSNR[sysName][sysID].values()
 
             for k in result:
                 k = {key: value for (key, value) in k.items() if value}
@@ -507,15 +534,17 @@ if flags["GSA"] or flags["GSV"]:
             ax.set_xlabel('Time', fontsize=14)
             ax.set_ylabel('SNR, dBHz', fontsize=14)
             ax.text(0.01, 0.98, 'average SNR: ', fontsize=14, transform=ax.transAxes, verticalalignment='top')
+            if flags["GSV"]:
+                ax.text(0.01, 0.9, 'ONLY GSV!', fontsize=14, transform=ax.transAxes, verticalalignment='top')
             if countSNR1 != 0:
                 ax.text(0.01, 0.94, f'{round((averageSNR / countSNR1), 1)} dBHz', fontsize=14, transform=ax.transAxes,
                         verticalalignment='top')
             ax.set_title(f"{nameFile_int}, {sysName}_{sysID}", fontsize=14)
             ax.set_ylim(10, 60)
             ax.grid(color='black', linestyle='--', linewidth=0.2)
-            ax.legend(all_sat[sysName][sysID].keys(), loc='upper right')
+            ax.legend(all_satSNR[sysName][sysID].keys(), loc='upper right')
             jpeg_filename = f'Result_SNR/{nameFile_int}_{sysName}_{sysID}.png'
             plt.savefig(jpeg_filename, dpi=200)
-            #plt.show()
+            plt.show()
             plt.close()
 
