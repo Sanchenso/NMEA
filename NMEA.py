@@ -446,7 +446,7 @@ if flags["TXT"]:
     file_name = os.path.join('Result_CSV', f'{nameFile_int}_TXT.csv')
     max_len = max(len(values) for values in dictTXT.values())
     with open(file_name, 'w', encoding='utf-8') as file:
-        header = "GPS_Time," + ",".join([f"Value_{i + 1}" for i in range(max_len)]) + "\n"
+        header = "GPS_Time," + ",".join([f"{i + 1}" for i in range(max_len)]) + "\n"
         file.write(header)
         for time, values in dictTXT.items():
             values_str = ",".join(

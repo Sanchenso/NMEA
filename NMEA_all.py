@@ -21,17 +21,6 @@ for i in files:
     if i[-4:] in ('.dat', '.ubx', '.log') or i[-5:] == '.cyno':
         print(i)
         # Start each script as a subprocess
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} GPS L1", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} GPS L2", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} GPS L5", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Glonass L1", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Glonass L2", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} BeiDou L1", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} BeiDou L2", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} BeiDou L5", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Galileo L1", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Galileo L2", shell=True))
-        #processes.append(subprocess.Popen(f"python3 NMEA.py {i} Galileo L5", shell=True))
         subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GPS' + ' ' + 'L1', shell=True)
         #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'BeiDou' + ' ' + 'L1', shell=True)
         #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GPS' + ' ' + 'L2', shell=True)
