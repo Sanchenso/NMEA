@@ -235,15 +235,18 @@ def parserGSV_inUse(line_from_file, inuse_sat, all_satSNR, not_inuse_satSNR):
                 if line_from_file[5] != "*":
                     for i in range(4, 20, 4):
                         if line_from_file.index('*') > i + 3 and len(str(line_from_file[i])) < 3:
-                            sat_number = int(line_from_file[i])
-                            if sat_number in inuse_sat.get(system, []):
-                                # Если спутник в списке inuse_sat, добавляем в all_satSNR
-                                SatSnr(system, systemID, all_satSNR, i, i + 3)
-                                SatElevation(system, systemID, all_satElevation, i, i + 1)
+                            sat_number = int(line_from_file[i]) if line_from_file[i] else None
+                            if sat_number:
+                                if sat_number in inuse_sat.get(system, []):
+                                    # Если спутник в списке inuse_sat, добавляем в all_satSNR
+                                    SatSnr(system, systemID, all_satSNR, i, i + 3)
+                                    SatElevation(system, systemID, all_satElevation, i, i + 1)
+                                else:
+                                    # Если спутника нет в списке inuse_sat, добавляем в not_inuse_satSNR
+                                    SatSnr(system, systemID, not_inuse_satSNR, i, i + 3)
+                                    SatElevation(system, systemID, not_inuse_satElevation, i, i + 1)
                             else:
-                                # Если спутника нет в списке inuse_sat, добавляем в not_inuse_satSNR
-                                SatSnr(system, systemID, not_inuse_satSNR, i, i + 3)
-                                SatElevation(system, systemID, not_inuse_satElevation, i, i + 1)
+                                print(line_from_file)
     return
 
 
