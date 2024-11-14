@@ -379,8 +379,9 @@ with open(nameFile, encoding="CP866") as inf2:
                     asterisk_index = line.find('*')
                     newLine = line[start_index::].replace('*', ',*,').split(',')
                     msg = pynmea2.parse(line[start_index:].strip())
-
-                    if '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
+                    if '$GNGGA' in newLine and newLine[6] == '' or newLine[6] == '0':
+                        break
+                    elif '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
                         flags["GGA"] = True
                         countGGA += 1
                         for i in inUse_sat:
@@ -407,6 +408,8 @@ with open(nameFile, encoding="CP866") as inf2:
                         idSignal = newLine[-3]
                         if flags["GSA"]:
                             parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
+                        elif all(not v for v in inUse_sat.values()):
+                            break
                         else:
                             flags["GSV"] = True
                             parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
