@@ -151,9 +151,9 @@ possibleNMEA = ['$GPGGA', '$GPGSA', '$GPGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BD
 system_mapping = {details['gsa_id_system']: system_name for system_name, details in SYSTEMS.items()}
 gsv_mapping = {'$GPGSV': 'GPS', '$GLGSV': 'Glonass', '$BDGSV': 'BeiDou', '$GBGSV': 'BeiDou', '$GAGSV': 'Galileo'}
 # значение elevation, значения ниже этого в рассчете не участует
-MinElevation = 0
+MinElevation = 10
 # значение SNR, значения ниже этого в рассчете не участуют
-minSNR = 0
+minSNR =15
 
 # Проверка входных аргументов. Пример "ally_2J_channel_gnss_126.dat Glonass L2"
 '''
@@ -336,6 +336,7 @@ def average(dataDict):
 
     for numerOfSat, values in dataDict.items():
         clean_values = [int(v) for v in values.values() if v is not None and v != '']
+        print(clean_values)
         if clean_values:
             avg = float(round(sum(clean_values) / len(clean_values), 1))
             list_Average.append(avg)
@@ -480,7 +481,7 @@ if flags["GSA"] or flags["GSV"]:
             countSNR1 = 0
             p = average(all_satSNR[sysName][sysID])
             m = average(all_satElevation[sysName][sysID])
-
+            print(p[0][1])
             for i in range(len(p[0])):
                 if p[1][i] > ((last - first).total_seconds() * 0.5) and p[0][i] > minSNR:
                     averageSNR += p[0][i]
@@ -544,6 +545,10 @@ if flags["GSA"] or flags["GSV"]:
                 ax.text(0.01, 0.9, 'ONLY GSV!', fontsize=14, transform=ax.transAxes, verticalalignment='top')
             if countSNR1 != 0:
                 ax.text(0.01, 0.94, f'{round((averageSNR / countSNR1), 1)} dBHz', fontsize=14, transform=ax.transAxes,
+                        verticalalignment='top')
+                ax.text(0.2, 0.98, f'calcSNR>{minSNR} dBHz', fontsize=14, transform=ax.transAxes,
+                        verticalalignment='top')
+                ax.text(0.2, 0.94, f'calcELEV>{MinElevation}°', fontsize=14, transform=ax.transAxes,
                         verticalalignment='top')
             ax.set_title(f"{nameFile_int}, {sysName}_{sysID}", fontsize=14)
             ax.set_ylim(10, 60)
