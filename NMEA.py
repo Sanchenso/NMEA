@@ -336,7 +336,6 @@ def average(dataDict):
 
     for numerOfSat, values in dataDict.items():
         clean_values = [int(v) for v in values.values() if v is not None and v != '']
-        print(clean_values)
         if clean_values:
             avg = float(round(sum(clean_values) / len(clean_values), 1))
             list_Average.append(avg)
@@ -377,10 +376,14 @@ with open(nameFile, encoding="CP866") as inf2:
                     countErrorChk += 1
                     break
                 try:
-                    asterisk_index = line.find('*')
+                    if line.find('*') == -1:
+                        countErrorChk += 1
+                        break
+                    else:
+                        asterisk_index = line.find('*')
                     newLine = line[start_index::].replace('*', ',*,').split(',')
                     msg = pynmea2.parse(line[start_index:].strip())
-                    if '$GNGGA' in newLine and newLine[6] == '' or newLine[6] == '0':
+                    if ('$GNGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
                         break
                     elif '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
                         flags["GGA"] = True
@@ -481,7 +484,6 @@ if flags["GSA"] or flags["GSV"]:
             countSNR1 = 0
             p = average(all_satSNR[sysName][sysID])
             m = average(all_satElevation[sysName][sysID])
-            print(p[0][1])
             for i in range(len(p[0])):
                 if p[1][i] > ((last - first).total_seconds() * 0.5) and p[0][i] > minSNR:
                     averageSNR += p[0][i]
@@ -556,6 +558,6 @@ if flags["GSA"] or flags["GSV"]:
             ax.legend(all_satSNR[sysName][sysID].keys(), loc='upper right')
             jpeg_filename = f'Result_SNR/{nameFile_int}_{sysName}_{sysID}.png'
             plt.savefig(jpeg_filename, dpi=200)
-            plt.show()
+            #plt.show()
             plt.close()
 
