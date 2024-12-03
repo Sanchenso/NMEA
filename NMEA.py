@@ -10,8 +10,7 @@ from matplotlib.dates import SecondLocator
 nameFile = sys.argv[1]  # for example 'test.ubx'
 
 systemGSV = sys.argv[2] if len(sys.argv) > 2 else None
-#IDsystem = sys.argv[3]  # for example 'L1'
-#print(nameFile, systemName, IDsystem)
+
 nameFile_int, nameFile_ext = os.path.splitext(nameFile)  # name for example test, and extension name for example '.ubx'
 
 
@@ -435,8 +434,6 @@ if flags["GGA"]:
     last = datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
     first = datetime.strptime(listTimeGGA[0], '%H''%M''%S.%f')
     time_of_flight: int = int((last - first).total_seconds())
-    # print('DifTime from first and last GGA:', end=' ')
-    # print(time_of_flight, 'sec')
     file_name = os.path.join('Result_CSV', f'{nameFile_int}_GGA.csv')
     with open(file_name, 'w', encoding='utf-8') as file:
         file.write("GPS_Time,Altitude,rtkAGE,Status\n")
@@ -463,12 +460,6 @@ if flags["TXT"]:
                 map(str, values + [None] * (max_len - len(values))))  # Заполнение недостающих значений
             line = f"{time},{values_str}\n"
             file.write(line)
-
-    #df3 = pd.DataFrame(list(dictTXT.items()), columns=["GPS_Time", "Values"])
-    #values_df = pd.DataFrame(df3['Values'].tolist())
-    #df3.drop(columns=['Values'], inplace=True)
-    #df3 = df3.join(values_df)
-    #df3.to_csv(f'Result_CSV/{nameFile_int}_TXT.csv', index=False, escapechar="\\")
 print('Errors:', countErrorChk)
 print()
 print(systemGSV)
