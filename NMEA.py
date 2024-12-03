@@ -375,12 +375,10 @@ with open(nameFile, encoding="CP866") as inf2:
                     countErrorChk += 1
                     break
                 try:
-                    if line.find('*') == -1:
+                    newLine = line[start_index::].replace('*', ',*,').split(',')
+                    if '*' not in newLine:
                         countErrorChk += 1
                         break
-                    else:
-                        asterisk_index = line.find('*')
-                    newLine = line[start_index::].replace('*', ',*,').split(',')
                     msg = pynmea2.parse(line[start_index:].strip())
                     if ('$GNGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
                         break
@@ -486,11 +484,15 @@ if flags["GSA"] or flags["GSV"]:
                 print(f"average SNR: {avg_snr}")
                 print(f"number of sat average SNR: {countSNR1}\n")
 
-                # дозапись осреденных в файл test.txt - для скрипта
-                with open('Result_SNR/test.txt', 'a') as f1:
-                    f1.write(
-                        f"{nameFile_int}_{sysName}_{sysID} {avg_snr} {countGGA} {countErrorChk} {round((last - first).total_seconds())}\n")
-
+                # дозапись осреденных значений SNR в отдельные файлы
+                file_name = f'Result_SNR/{sysName}_{sysID}.txt'
+                with open(file_name, 'a') as f1:
+                    f1.write(f"{nameFile_int}_{sysName}_{sysID} "
+                             f"{avg_snr} "
+                             f"{countSNR1} "
+                             f"{countGGA} "
+                             f"{round((last - first).total_seconds())} "
+                             f"{countErrorChk}\n")
             # Сохранение данных в CSV-файл
             for system, system_data in all_satSNR.items():
                 for systemID, sats_data in system_data.items():
