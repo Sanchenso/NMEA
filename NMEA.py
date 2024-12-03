@@ -407,13 +407,17 @@ with open(nameFile, encoding="CP866") as inf2:
                             break
                     elif newLine[0] in gsv_mapping and countGGA >= 1 and chksum_nmea(newLine):
                         idSignal = newLine[-3]
-                        if flags["GSA"]:
-                            parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
-                        elif all(not v for v in inUse_sat.values()):
-                            break
-                        else:
+                        if systemGSV:
                             flags["GSV"] = True
+                            for i in inUse_sat:
+                                inUse_sat[i] = []
                             parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
+                        else:
+                            if flags["GSA"]:
+                                parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
+                            else:
+                                flags["GSV"] = True
+                                parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                         break
                     elif '$GNRMC' in newLine and countGGA >= 1 and len(newLine) > 4:
                         flags["RMC"] = True
