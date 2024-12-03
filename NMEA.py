@@ -87,7 +87,7 @@ SYSTEMS = {
         'gsa_id_system': '2',
         'gsa_id_signal': {
             '1': 'G1CA_L1',  # L1 1602.0–1615.5 MHz
-            '3': 'G2CA_L1'  # L2 1246.0–1256.5 MHz
+            '3': 'G2CA_L2'  # L2 1246.0–1256.5 MHz
         },
         'possible_sat_in_system': list(range(65, 97)) + list(range(1, 29)),
     },
