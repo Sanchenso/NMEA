@@ -140,7 +140,6 @@ for binfile in os.listdir():
             plot_snr(dfGPSL5, 'SNR GPS L5, NMEA GSV', axs[1], min_time, max_time)
             used_axs.append(1)
         if dfBeiDouL1 is not None:
-            print(dfBeiDouL1)
             plot_snr(dfBeiDouL1, 'SNR BeiDou L1, NMEA GSV', axs[2], min_time, max_time)
             used_axs.append(2)
         if dfBeiDouL2 is not None:
@@ -165,6 +164,6 @@ for binfile in os.listdir():
         fig.suptitle(binfile[:-4], x=0.5, y=0.97, verticalalignment='top')
 
         plt.tight_layout()
-        plt.savefig('Result_SNR_4/' + binfile[:-4], dpi=500, bbox_inches='tight')
+        plt.savefig('Result_SNR_4/' + binfile[:-4], dpi=200, bbox_inches='tight')
         #plt.show()
         plt.close()
