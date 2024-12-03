@@ -433,7 +433,7 @@ with open(nameFile, encoding="CP866") as inf2:
 
 if flags["GGA"]:
     # подсчет времени по сообщениям GGA
-    last = datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
+    last: datetime = datetime.strptime(listTimeGGA[-1], '%H''%M''%S.%f')
     first = datetime.strptime(listTimeGGA[0], '%H''%M''%S.%f')
     time_of_flight: int = int((last - first).total_seconds())
     file_name = os.path.join('Result_CSV', f'{nameFile_int}_GGA.csv')
@@ -557,4 +557,3 @@ if flags["GSA"] or flags["GSV"]:
             plt.savefig(jpeg_filename, dpi=200)
             #plt.show()
             plt.close()
-
