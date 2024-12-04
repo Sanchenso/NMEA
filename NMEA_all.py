@@ -20,7 +20,8 @@ processes = []
 for i in files:
     if i[-4:] in ('.dat', '.ubx', '.log') or i[-5:] == '.cyno':
         print(i)
-        subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GSV', shell=True)
+        #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GSV', shell=True)
+        subprocess.call("python3 " + 'NMEA.py ' + i, shell=True)
 # Wait for all processes to complete
 for process in processes:
     process.wait()

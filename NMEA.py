@@ -150,7 +150,7 @@ possibleNMEA = ['$GPGGA', '$GPGSA', '$GPGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BD
 system_mapping = {details['gsa_id_system']: system_name for system_name, details in SYSTEMS.items()}
 gsv_mapping = {'$GPGSV': 'GPS', '$GLGSV': 'Glonass', '$BDGSV': 'BeiDou', '$GBGSV': 'BeiDou', '$GAGSV': 'Galileo'}
 # значение elevation, значения ниже этого в рассчете не участует
-MinElevation = 10
+minElevation = 10
 # значение SNR, значения ниже этого в рассчете не участуют
 minSNR =15
 
@@ -191,7 +191,7 @@ def checkSystem(systemName):
 def SatSnr(system, systemID, snr_dict, lineSat, lineSnr):
     satN = int(newLine[lineSat].strip())
     snrN = newLine[lineSnr].strip()
-    if snrN == '':
+    if snrN == '' or int(snrN) <= minSNR:
         value = None
     else:
         value = int(snrN)
@@ -209,7 +209,7 @@ def SatSnr(system, systemID, snr_dict, lineSat, lineSnr):
 def SatElevation(system, systemID, elevation_dict, lineSat, lineElev):
     satN = int(newLine[lineSat].strip())
     elevN = newLine[lineElev].strip()
-    if elevN == '':
+    if elevN == '' or int(elevN) <= minElevation:
         value = None
     else:
         value = int(elevN)
@@ -547,7 +547,7 @@ if flags["GSA"] or flags["GSV"]:
                         verticalalignment='top')
                 ax.text(0.2, 0.98, f'calcSNR>{minSNR} dBHz', fontsize=14, transform=ax.transAxes,
                         verticalalignment='top')
-                ax.text(0.2, 0.94, f'calcELEV>{MinElevation}°', fontsize=14, transform=ax.transAxes,
+                ax.text(0.2, 0.94, f'calcELEV>{minElevation}°', fontsize=14, transform=ax.transAxes,
                         verticalalignment='top')
             ax.set_title(f"{nameFile_int}, {sysName}_{sysID}", fontsize=14)
             ax.set_ylim(10, 60)
