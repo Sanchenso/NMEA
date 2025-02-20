@@ -9,7 +9,8 @@ from matplotlib.dates import SecondLocator
 
 nameFile = sys.argv[1]  # for example 'test.ubx'
 
-systemGSV = sys.argv[2] if len(sys.argv) > 2 else None
+systemGSV = (sys.argv[2]) if len(sys.argv) > 2 else None
+
 
 nameFile_int, nameFile_ext = os.path.splitext(nameFile)  # name for example test, and extension name for example '.ubx'
 
@@ -55,6 +56,9 @@ flags = {
     "GSV": False,
     "TXT": False
 }
+
+if systemGSV == "GSV":
+    flags["GSV"] = True
 
 countGGA = 0
 normstring = 0
@@ -132,7 +136,8 @@ SYSTEMS = {
             '1': 'id_L1',  # L1 1574.42 MHz
             '6': 'id_L2'  # L2 1227.6 MHz
         },
-        'possible_sat_in_system': list(range(93, 100)) + list(range(193, 198)),
+        #'possible_sat_in_system': list(range(93, 100)) + list(range(193, 198)),
+        'possible_sat_in_system': list(range(0, 100)) + list(range(193, 198)),
     },
     'IRNSS': {
         'satellite_system': '$GPGSV',
@@ -408,7 +413,7 @@ with open(nameFile, encoding="CP866") as inf2:
                     elif newLine[0] in gsv_mapping and countGGA >= 1 and chksum_nmea(newLine):
                         idSignal = newLine[-3]
                         if systemGSV:
-                            flags["GSV"] = True
+                            #flags["GSV"] = True
                             for i in inUse_sat:
                                 inUse_sat[i] = []
                             parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
@@ -416,7 +421,7 @@ with open(nameFile, encoding="CP866") as inf2:
                             if flags["GSA"]:
                                 parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                             else:
-                                flags["GSV"] = True
+                                #flags["GSV"] = True
                                 parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                         break
                     elif '$GNRMC' in newLine and countGGA >= 1 and len(newLine) > 4:
@@ -555,5 +560,5 @@ if flags["GSA"] or flags["GSV"]:
             ax.legend(all_satSNR[sysName][sysID].keys(), loc='upper right')
             jpeg_filename = f'Result_SNR/{nameFile_int}_{sysName}_{sysID}.png'
             plt.savefig(jpeg_filename, dpi=200)
-            #plt.show()
+            plt.show()
             plt.close()
