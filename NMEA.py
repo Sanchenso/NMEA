@@ -267,7 +267,7 @@ def parserGGA(line_from_file, msg):
     listTimeGGA.append(line_from_file[1])
     formatted_output = time.strftime('%H:%M:%S.%f')
     dictGGA[formatted_output] = float(check_argument(msg.altitude)), float(
-        check_argument(msg.age_gps_data)), int(msg.gps_qual)
+        check_argument(msg.age_gps_data)), int(msg.gps_qual), float(check_argument(msg.horizontal_dil))
     return time
 
 
@@ -443,9 +443,9 @@ if flags["GGA"]:
     time_of_flight: int = int((last - first).total_seconds())
     file_name = os.path.join('Result_CSV', f'{nameFile_int}_GGA.csv')
     with open(file_name, 'w', encoding='utf-8') as file:
-        file.write("GPS_Time,Altitude,rtkAGE,Status\n")
+        file.write("GPS_Time,Altitude,rtkAGE,Status,HDOP\n")
         for time, values in dictGGA.items():
-            line = f"{time},{values[0]},{values[1]},{values[2]}\n"
+            line = f"{time},{values[0]},{values[1]},{values[2]},{values[3]}\n"
             file.write(line)
 
 if flags["RMC"]:
@@ -560,5 +560,5 @@ if flags["GSA"] or flags["GSV"]:
             ax.legend(all_satSNR[sysName][sysID].keys(), loc='upper right')
             jpeg_filename = f'Result_SNR/{nameFile_int}_{sysName}_{sysID}.png'
             plt.savefig(jpeg_filename, dpi=200)
-            plt.show()
+            #plt.show()
             plt.close()

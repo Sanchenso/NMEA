@@ -47,14 +47,14 @@ if not os.path.exists('Result_SNR_4'):
 
 for binfile in os.listdir():
     nameFile_int, nameFile_ext = os.path.splitext(binfile) 
-    if nameFile_ext == '.dat' or nameFile_ext == '.cyno':
+    if nameFile_ext in ('.dat', '.ubx', '.log') or nameFile_ext == '.cyno':
         csv_files = {
             'dfGPSL1': '_GPS_L1CA_L1_SNR.csv',
             'dfGPSL2': '_GPS_L2CM_L2_SNR.csv',
-            'dfGPSL5': '_GPS_L5I_L5_SNR.csv',
+            'dfGPSL5': '_GPS_L5Q_L5_SNR.csv',
             'dfBeiDouL1': '_BeiDou_B1I_L1_SNR.csv',
             'dfBeiDouL2': '_BeiDou_L2_SNR.csv',
-            'dfBeiDouL5': '_BeiDou_B2A_L5_SNR.csv',
+            'dfBeiDouL5': '_BeiDou_L5_SNR.csv',
             'dfGlonassL1': '_Glonass_G1CA_L1_SNR.csv',
             'dfGlonassL2': '_Glonass_G2CA_L2_SNR.csv',
             'dfGalileoL1': '_Galileo_L1BC_L1_SNR.csv',
@@ -80,7 +80,7 @@ for binfile in os.listdir():
         dfGlonassL1 = loaded_dataframes.get('dfGlonassL1')
         dfGlonassL2 = loaded_dataframes.get('dfGlonassL2')
         
-        dataframes = [dfGPSL1, dfGPSL2, dfGlonassL1, dfGlonassL2, dfBeiDouL1, dfBeiDouL2]
+        dataframes = [dfGPSL1, dfGPSL2, dfGlonassL1, dfGlonassL2, dfBeiDouL1, dfBeiDouL2, dfGPSL5, dfBeiDouL5]
         # Check missing dataframes
         dataframes = [df for df in dataframes if df is not None]
 
