@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, time
 import re
 import os
 import sys
-import pynmea2
 import matplotlib.dates as mdates
 from matplotlib.dates import SecondLocator
 
@@ -68,6 +67,7 @@ countChk = 0
 averageSNR = 0
 countSNR1 = 0
 numsecEr = 0
+values = 'noTXT'
 
 SYSTEMS = {
     'GPS': {
@@ -157,7 +157,7 @@ gsv_mapping = {'$GPGSV': 'GPS', '$GLGSV': 'Glonass', '$BDGSV': 'BeiDou', '$GBGSV
 # значение elevation, значения ниже этого в рассчете не участует
 minElevation = 10
 # значение SNR, значения ниже этого в рассчете не участуют
-minSNR =15
+minSNR = 15
 
 # Проверка входных аргументов. Пример "ally_2J_channel_gnss_126.dat Glonass L2"
 '''
@@ -254,20 +254,20 @@ def parserGSV_inUse(line_from_file, inuse_sat, all_satSNR, not_inuse_satSNR):
     return
 
 
-def parserRMC(line_from_file, msg):
+def parserRMC(line_from_file):
     time1 = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
     formatted_output1 = time1.strftime('%H:%M:%S.%f')
-    velocity = round(1.852 / 3.6 * float(check_argument(msg.spd_over_grnd)), 2)
-    dictRMC[formatted_output1] = msg.status, msg.mode_indicator, msg.nav_status, velocity
+    velocity = round(1.852 / 3.6 * float(check_argument(line_from_file[7])), 2)
+    dictRMC[formatted_output1] = line_from_file[2], line_from_file[-4], line_from_file[-3], velocity
     return
 
 
-def parserGGA(line_from_file, msg):
+def parserGGA(line_from_file):
     time = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
     listTimeGGA.append(line_from_file[1])
     formatted_output = time.strftime('%H:%M:%S.%f')
-    dictGGA[formatted_output] = float(check_argument(msg.altitude)), float(
-        check_argument(msg.age_gps_data)), int(msg.gps_qual), float(check_argument(msg.horizontal_dil))
+    dictGGA[formatted_output] = float(check_argument(line_from_file[-8])), float(
+        check_argument(line_from_file[-4])), int(line_from_file[6]), float(check_argument(line_from_file[-9]))
     return time
 
 
@@ -384,7 +384,6 @@ with open(nameFile, encoding="CP866") as inf2:
                     if '*' not in newLine:
                         countErrorChk += 1
                         break
-                    msg = pynmea2.parse(line[start_index:].strip())
                     if ('$GNGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
                         break
                     elif '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
@@ -393,18 +392,19 @@ with open(nameFile, encoding="CP866") as inf2:
                         for i in inUse_sat:
                             inUse_sat[i] = []
                         if len(newLine) == 17:
-                            time = parserGGA(newLine, msg)
+                            time = parserGGA(newLine)
                         else:
                             countErrorChk += 1
                         break
                     elif '$GNGSA' in newLine:
+                        flags["GSA"] = True
+                        flags["GSV"] = False
                         if len(newLine) == 21 and countGGA >= 1 and newLine[2] == '3' and chksum_nmea(newLine):
                             idSystem = newLine[-3]
                             if not idSystem in dictIdSystems and len(newLine) > 20:
                                 idSystem = newLine[-3]
                                 dictIdSystems[idSystem] = [system_mapping[idSystem]]
                             if newLine[-3] in system_mapping:
-                                flags["GSA"] = True
                                 parserGSA(newLine)
                                 break
                         else:
@@ -413,7 +413,6 @@ with open(nameFile, encoding="CP866") as inf2:
                     elif newLine[0] in gsv_mapping and countGGA >= 1 and chksum_nmea(newLine):
                         idSignal = newLine[-3]
                         if systemGSV:
-                            #flags["GSV"] = True
                             for i in inUse_sat:
                                 inUse_sat[i] = []
                             parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
@@ -421,20 +420,19 @@ with open(nameFile, encoding="CP866") as inf2:
                             if flags["GSA"]:
                                 parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                             else:
-                                #flags["GSV"] = True
+                                flags["GSV"] = True
                                 parserGSV_inUse(newLine, inUse_sat, all_satSNR, not_inuse_satSNR)
                         break
                     elif '$GNRMC' in newLine and countGGA >= 1 and len(newLine) > 4:
                         flags["RMC"] = True
-                        parserRMC(newLine, msg)
+                        parserRMC(newLine)
                         break
                     elif '$GNTXT' in newLine and countGGA >= 1:
                         flags["TXT"] = True
                         parserTXT(newLine, time)
-
-                except pynmea2.ParseError:
-                    countErrorChk += 1
-                    continue
+                except:
+                   countErrorChk += 1
+                   continue
 
 if flags["GGA"]:
     # подсчет времени по сообщениям GGA
@@ -469,7 +467,7 @@ if flags["TXT"]:
             file.write(line)
 print('Errors:', countErrorChk)
 print()
-print(systemGSV)
+
 if flags["GSV"] or systemGSV == 'GSV':
     print_alert("NOT GSA MESSAGE!!!!")
     all_satSNR = not_inuse_satSNR
@@ -501,7 +499,8 @@ if flags["GSA"] or flags["GSV"]:
                              f"{countSNR1} "
                              f"{countGGA} "
                              f"{round((last - first).total_seconds())} "
-                             f"{countErrorChk}\n")
+                             f"{countErrorChk} "
+                             f"{values}\n") 
             # Сохранение данных в CSV-файл
             for system, system_data in all_satSNR.items():
                 for systemID, sats_data in system_data.items():
