@@ -12,7 +12,7 @@ dfBeiDouL1 = pd.DataFrame()
 dfBeiDouL2 = pd.DataFrame()
 dfGlonassL1 = pd.DataFrame()
 dfGlonassL2 = pd.DataFrame()
-
+df = pd.DataFrame()
 files = os.listdir()
 processes = []
 
@@ -32,7 +32,7 @@ format_date_time = "%H:%M:%S.%f"
 
 def parse_multiple_formats(date_str):
     formats = ["%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%Y/%m/%d %H:%M:%S", "%H:%M:%S.%f"]
-    
+
     for fmt in formats:
         try:
             return datetime.strptime(date_str, fmt)
@@ -46,7 +46,7 @@ if not os.path.exists('Result_SNR_4'):
 
 
 for binfile in os.listdir():
-    nameFile_int, nameFile_ext = os.path.splitext(binfile) 
+    nameFile_int, nameFile_ext = os.path.splitext(binfile)
     if nameFile_ext in ('.dat', '.ubx', '.log') or nameFile_ext == '.cyno':
         csv_files = {
             'dfGPSL1': '_GPS_L1CA_L1_SNR.csv',
@@ -81,18 +81,16 @@ for binfile in os.listdir():
         dfBeiDouL5 = loaded_dataframes.get('dfBeiDouL5')
         dfGlonassL1 = loaded_dataframes.get('dfGlonassL1')
         dfGlonassL2 = loaded_dataframes.get('dfGlonassL2')
-        
+
         dataframes = [dfGPSL1, dfGPSL2_CM, dfGPSL2_CL, dfGlonassL1, dfGlonassL2, dfBeiDouL1, dfBeiDouL2, dfGPSL5, dfBeiDouL5]
         # Check missing dataframes
         dataframes = [df for df in dataframes if df is not None]
-
-
-        for df in dataframes:
-            df['GPS_Time'] = df['GPS_Time'].apply(parse_multiple_formats)
-            #df['Unnamed: 0'] = pd.to_datetime(df['Unnamed: 0'])
-            
-        min_time = min(df['GPS_Time'].min() for df in dataframes) - timedelta(seconds=5)
-        max_time = max(df['GPS_Time'].max() for df in dataframes) + timedelta(seconds=5)
+        if len(dataframes) != 0:
+            for df in dataframes:
+                df['GPS_Time'] = df['GPS_Time'].apply(parse_multiple_formats)
+                #df['Unnamed: 0'] = pd.to_datetime(df['Unnamed: 0'])
+            min_time = min(df['GPS_Time'].min() for df in dataframes) - timedelta(seconds=5)
+            max_time = max(df['GPS_Time'].max() for df in dataframes) + timedelta(seconds=5)
 
                 # SNR
         # Initialize the 2x2 grid of subplots
@@ -108,7 +106,7 @@ for binfile in os.listdir():
             ax.text(0.05, 0.9, 'average:', fontsize=8, transform=ax.transAxes, verticalalignment='top')
             ax.text(0.16, 0.9, f'{avgSNR} dBHz', fontsize=8, transform=ax.transAxes, verticalalignment='top')
             ax.set_ylim(10, 60)
-            #ax.set_xlim(min_time, max_time)
+            ax.set_xlim(min_time, max_time)
             ax.set_xlabel('Time', fontsize=8)
             ax.tick_params(axis='x', which='major', labelsize=8)
             ax.tick_params(axis='y', which='major', labelsize=8)
