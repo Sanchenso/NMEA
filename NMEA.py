@@ -151,7 +151,7 @@ SYSTEMS = {
 }
 
 possibleNMEA = ['$GPGGA', '$GPGSA', '$GPGGA', '$GNGSA', '$GPGSV', '$GLGSV', '$BDGSV', '$GBGSV', '$GAGSV', '$GNRMC',
-                '$GNGGA', '$GNTXT']
+                '$GNGGA', '$GNTXT', '$PHDANT']
 system_mapping = {details['gsa_id_system']: system_name for system_name, details in SYSTEMS.items()}
 gsv_mapping = {'$GPGSV': 'GPS', '$GLGSV': 'Glonass', '$BDGSV': 'BeiDou', '$GBGSV': 'BeiDou', '$GAGSV': 'Galileo'}
 # значение elevation, значения ниже этого в рассчете не участует
@@ -427,7 +427,7 @@ with open(nameFile, encoding="CP866") as inf2:
                         flags["RMC"] = True
                         parserRMC(newLine)
                         break
-                    elif '$GNTXT' in newLine and countGGA >= 1:
+                    elif '$GNTXT' or '$PHDANT' in newLine and countGGA >= 1:
                         flags["TXT"] = True
                         parserTXT(newLine, time)
                 except:
