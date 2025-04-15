@@ -50,7 +50,8 @@ for binfile in os.listdir():
     if nameFile_ext in ('.dat', '.ubx', '.log') or nameFile_ext == '.cyno':
         csv_files = {
             'dfGPSL1': '_GPS_L1CA_L1_SNR.csv',
-            'dfGPSL2': '_GPS_L2CM_L2_SNR.csv',
+            'dfGPSL2_CM': '_GPS_L2CM_L2_SNR.csv',
+            'dfGPSL2_CL': '_GPS_L2CL_L2_SNR.csv',
             'dfGPSL5': '_GPS_L5Q_L5_SNR.csv',
             'dfBeiDouL1': '_BeiDou_B1I_L1_SNR.csv',
             'dfBeiDouL2': '_BeiDou_L2_SNR.csv',
@@ -72,7 +73,8 @@ for binfile in os.listdir():
         
         # Extract loaded DataFrames
         dfGPSL1 = loaded_dataframes.get('dfGPSL1')
-        dfGPSL2 = loaded_dataframes.get('dfGPSL2')
+        dfGPSL2_CM = loaded_dataframes.get('dfGPSL2_CM')
+        dfGPSL2_CL = loaded_dataframes.get('dfGPSL2_CL')
         dfGPSL5 = loaded_dataframes.get('dfGPSL5')
         dfBeiDouL1 = loaded_dataframes.get('dfBeiDouL1')
         dfBeiDouL2 = loaded_dataframes.get('dfBeiDouL2')
@@ -80,7 +82,7 @@ for binfile in os.listdir():
         dfGlonassL1 = loaded_dataframes.get('dfGlonassL1')
         dfGlonassL2 = loaded_dataframes.get('dfGlonassL2')
         
-        dataframes = [dfGPSL1, dfGPSL2, dfGlonassL1, dfGlonassL2, dfBeiDouL1, dfBeiDouL2, dfGPSL5, dfBeiDouL5]
+        dataframes = [dfGPSL1, dfGPSL2_CM, dfGPSL2_CL, dfGlonassL1, dfGlonassL2, dfBeiDouL1, dfBeiDouL2, dfGPSL5, dfBeiDouL5]
         # Check missing dataframes
         dataframes = [df for df in dataframes if df is not None]
 
@@ -134,8 +136,11 @@ for binfile in os.listdir():
         if dfGPSL1 is not None:
             plot_snr(dfGPSL1, 'SNR GPS L1, NMEA GSV', axs[0], min_time, max_time)
             used_axs.append(0)
-        if dfGPSL2 is not None:
-            plot_snr(dfGPSL2, 'SNR GPS L2, NMEA GSV', axs[1], min_time, max_time)
+        if dfGPSL2_CM is not None:
+            plot_snr(dfGPSL2_CM, 'SNR GPS L2, NMEA GSV', axs[1], min_time, max_time)
+            used_axs.append(1)
+        if dfGPSL2_CL is not None:
+            plot_snr(dfGPSL2_CL, 'SNR GPS L2, NMEA GSV', axs[1], min_time, max_time)
             used_axs.append(1)
         if dfGPSL5 is not None:
             plot_snr(dfGPSL5, 'SNR GPS L5, NMEA GSV', axs[1], min_time, max_time)
@@ -165,6 +170,6 @@ for binfile in os.listdir():
         fig.suptitle(binfile[:-4], x=0.5, y=0.97, verticalalignment='top')
 
         plt.tight_layout()
-        plt.savefig('Result_SNR_4/' + binfile[:-4], dpi=200, bbox_inches='tight')
+        plt.savefig('Result_SNR_4/' + binfile[:-4] + '.jpeg', dpi=200, bbox_inches='tight')
         #plt.show()
         plt.close()

@@ -500,7 +500,7 @@ if flags["GSA"] or flags["GSV"]:
                              f"{countGGA} "
                              f"{round((last - first).total_seconds())} "
                              f"{countErrorChk} "
-                             f"{values}\n") 
+                             f"{values}\n")
             # Сохранение данных в CSV-файл
             for system, system_data in all_satSNR.items():
                 for systemID, sats_data in system_data.items():
@@ -561,3 +561,5 @@ if flags["GSA"] or flags["GSV"]:
             plt.savefig(jpeg_filename, dpi=200)
             #plt.show()
             plt.close()
+    print(values)
+    print()
