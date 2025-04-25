@@ -10,7 +10,6 @@ nameFile = sys.argv[1]  # for example 'test.ubx'
 
 systemGSV = (sys.argv[2]) if len(sys.argv) > 2 else None
 
-
 nameFile_int, nameFile_ext = os.path.splitext(nameFile)  # name for example test, and extension name for example '.ubx'
 
 
@@ -25,6 +24,11 @@ def create_dir_if_not_exists(directory):
 
 create_dir_if_not_exists('Result_SNR')
 create_dir_if_not_exists('Result_CSV')
+create_dir_if_not_exists('problemAlly')
+txt_file_path = os.path.join('problemAlly', f'{nameFile_int}_problems.txt')
+if os.path.exists(txt_file_path):
+    os.remove(txt_file_path)
+
 
 all_satSNR = {}
 not_inuse_satSNR = {}
@@ -53,7 +57,8 @@ flags = {
     "RMC": False,
     "GGA": False,
     "GSV": False,
-    "TXT": False
+    "TXT": False,
+    "HD9311": False
 }
 
 if systemGSV == "GSV":
@@ -68,6 +73,9 @@ averageSNR = 0
 countSNR1 = 0
 numsecEr = 0
 values = 'noTXT'
+
+prev_gga_time = None  # время предыдущего сообщения GNGGA
+gap_threshold = 3     # Порог в секундах для предупреждения
 
 SYSTEMS = {
     'GPS': {
@@ -369,9 +377,24 @@ def print_alert(message):
     print(border + "\n")
 
 
+def log_problem_message(problem_type: str, timestamp: str, message: str, file_int_name: str):
+    create_dir_if_not_exists('problemAlly')  # Создаем папку если нужно
+    log_file = f'problemAlly/{file_int_name}_problems.txt'
+    with open(log_file, 'a', encoding='utf-8') as problem_log:
+        problem_log.write(f"[{problem_type}] {timestamp}\n")
+        problem_log.write(f"{message}\n\n")
+
+
 # Base перебор сообщений из файла
 with open(nameFile, encoding="CP866") as inf2:
     for line in inf2:
+        if ('HD9311' in line) or ('3.018.d861dfe1' in line):
+            flags["HD9311"] = True
+        nmea_count = line.count('$')
+        if nmea_count >= 2:
+            second_dollar = line.find('$', line.find('$') + 1)
+            if second_dollar != -1:
+                line = line[second_dollar:]
         for prefix in possibleNMEA:
             start_index = line.find(prefix)
             if start_index != -1:
@@ -384,33 +407,54 @@ with open(nameFile, encoding="CP866") as inf2:
                     if '*' not in newLine:
                         countErrorChk += 1
                         break
-                    if ('$GNGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
+                    if not chksum_nmea(newLine):
                         break
-                    elif '$GNGGA' in newLine and newLine[1] != '' and chksum_nmea(newLine):
+                    if ('$GNGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
+                        time = datetime.strptime(str(split_line[1].strip()), '%H''%M''%S.%f') + timedelta(
+                            seconds=18)
+                        log_problem_message('GGA_Empty', time.strftime('%H:%M:%S.%f')[:-5], str(newLine), nameFile_int)
+                        break
+                    elif '$GNGGA' in newLine and newLine[1] != '':
                         flags["GGA"] = True
                         countGGA += 1
                         for i in inUse_sat:
                             inUse_sat[i] = []
                         if len(newLine) == 17:
                             time = parserGGA(newLine)
+                            if flags["HD9311"]:
+                                log_problem_message('HD9311', time.strftime('%H:%M:%S.%f')[:-5],
+                                                    'REBOOT, message ver HD9311', nameFile_int)
+                                print(time.strftime('%H:%M:%S.%f')[:-5], 'REBOOT, message ver HD9311')
+                                flags["HD9311"] = False
+                            if prev_gga_time is not None:
+                                time_diff = (time - prev_gga_time).total_seconds()
+                                if time_diff > gap_threshold:
+                                    log_problem_message('Time_GGA>3', time.strftime('%H:%M:%S.%f')[:-5], time_diff, nameFile_int)
+                                    print('Time_GGA>3', time.strftime('%H:%M:%S.%f')[:-5], time_diff, 'sec')
+                            prev_gga_time = time  # Обновляем время предыдущего сообщения
                         else:
                             countErrorChk += 1
-                        break
+                            break
                     elif '$GNGSA' in newLine:
                         flags["GSA"] = True
                         flags["GSV"] = False
-                        if len(newLine) == 21 and countGGA >= 1 and newLine[2] == '3' and chksum_nmea(newLine):
-                            idSystem = newLine[-3]
-                            if not idSystem in dictIdSystems and len(newLine) > 20:
+                        if len(newLine) == 21 and countGGA >= 1:
+                            if newLine[2] == '3':
                                 idSystem = newLine[-3]
-                                dictIdSystems[idSystem] = [system_mapping[idSystem]]
-                            if newLine[-3] in system_mapping:
-                                parserGSA(newLine)
+                                if not idSystem in dictIdSystems and len(newLine) > 20:
+                                    idSystem = newLine[-3]
+                                    dictIdSystems[idSystem] = [system_mapping[idSystem]]
+                                if newLine[-3] in system_mapping:
+                                    parserGSA(newLine)
+                                    break
+                            else:
+                                log_problem_message('GSA_Empty', time.strftime('%H:%M:%S.%f')[:-5],
+                                                    line[start_index:-1], nameFile_int)
                                 break
                         else:
                             countErrorChk += 1
                             break
-                    elif newLine[0] in gsv_mapping and countGGA >= 1 and chksum_nmea(newLine):
+                    elif newLine[0] in gsv_mapping and countGGA >= 1:
                         idSignal = newLine[-3]
                         if systemGSV:
                             for i in inUse_sat:
@@ -427,12 +471,17 @@ with open(nameFile, encoding="CP866") as inf2:
                         flags["RMC"] = True
                         parserRMC(newLine)
                         break
-                    elif '$GNTXT' or '$PHDANT' in newLine and countGGA >= 1:
+                    elif (('$GNTXT' in newLine) or ('$PHDANT' in newLine)) and countGGA >= 1:
                         flags["TXT"] = True
+                        if 'ALLYSTAR' in newLine:
+                            log_problem_message('ALLYSTAR', time.strftime('%H:%M:%S.%f')[:-5], str(newLine),
+                                                nameFile_int)
+                            print(time.strftime('%H:%M:%S.%f')[:-5])
+                            print(newLine)
                         parserTXT(newLine, time)
                 except:
-                   countErrorChk += 1
-                   continue
+                    countErrorChk += 1
+                    continue
 
 if flags["GGA"]:
     # подсчет времени по сообщениям GGA
@@ -561,5 +610,5 @@ if flags["GSA"] or flags["GSV"]:
             plt.savefig(jpeg_filename, dpi=200)
             #plt.show()
             plt.close()
-    print(values)
+    #print(values)
     print()
