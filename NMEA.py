@@ -90,7 +90,8 @@ SYSTEMS = {
             '6': 'L2CL_L2',  # L2
             '7': 'L5I_L5',  # L5 1176.45 MHz
             '8': 'L5Q_L5',  # L5
-            '11': 'L6_L6'  # L6
+            '11': 'L6_L6',  # L6
+            'GPS': 'L1'
         },
         'possible_sat_in_system': list(range(1, 33)),
     },
@@ -99,7 +100,9 @@ SYSTEMS = {
         'gsa_id_system': '2',
         'gsa_id_signal': {
             '1': 'G1CA_L1',  # L1 1602.0–1615.5 MHz
-            '3': 'G2CA_L2'  # L2 1246.0–1256.5 MHz
+            '3': 'G2CA_L2',  # L2 1246.0–1256.5 MHz
+            'Glonass': 'L1'
+
         },
         'possible_sat_in_system': list(range(65, 97)) + list(range(1, 29)),
     },
@@ -113,7 +116,8 @@ SYSTEMS = {
             'B': 'L2',  # L2
             '4': 'B2A_L5',  # L5 1176.45 MHz
             '5': 'L5',  # L5
-            '3': 'B3I_L3'  # L3
+            '3': 'B3I_L3',  # L3
+            'BeiDou': 'L1'
         },
         'possible_sat_in_system': list(range(1, 64)) + list(range(201, 264)),
     },
@@ -124,7 +128,8 @@ SYSTEMS = {
             '6': 'L1A_L1',  # L1 1575.42 MHz
             '7': 'L1BC_L1',  # L1
             '2': 'E5B_L2',  # L2 1278.75 MHz
-            '1': 'E5A_L2'  #  L5 1176.45 MHz
+            '1': 'E5A_L2',  #  L5 1176.45 MHz
+            'Galileo': 'L1'
         },
         'possible_sat_in_system': list(range(101, 137)) + list(range(1, 37)) + list(range(301, 337)),
     },
@@ -238,10 +243,13 @@ def SatElevation(system, systemID, elevation_dict, lineSat, lineElev):
 
 # функция парсера сообщений GSV вывод SNR с учетом сообщений GSA (только используемые спутники)
 def parserGSV_inUse(line_from_file, inuse_sat, all_satSNR, not_inuse_satSNR):
-    line_sysID = line_from_file[-3]
     for gsv in gsv_mapping:
         if line_from_file[0] == gsv:
             system = gsv_mapping[gsv]
+            if len(newLine) % 2 != 0:
+                line_sysID = line_from_file[-3]
+            else:
+                line_sysID = system
             if line_sysID in SYSTEMS[system]['gsa_id_signal']:
                 systemID = SYSTEMS[system]['gsa_id_signal'][line_sysID]
                 if line_from_file[5] != "*":
@@ -258,9 +266,8 @@ def parserGSV_inUse(line_from_file, inuse_sat, all_satSNR, not_inuse_satSNR):
                                     SatSnr(system, systemID, not_inuse_satSNR, i, i + 3)
                                     SatElevation(system, systemID, not_inuse_satElevation, i, i + 1)
                             else:
-                                print(line_from_file)
+                                countErrorChk += 1
     return
-
 
 def parserRMC(line_from_file):
     time1 = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
@@ -409,12 +416,12 @@ with open(nameFile, encoding="CP866") as inf2:
                         break
                     if not chksum_nmea(newLine):
                         break
-                    if ('$GNGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
+                    if ('$GNGGA' in newLine or '$GPGGA' in newLine) and (newLine[6] == '' or newLine[6] == '0'):
                         time = datetime.strptime(str(split_line[1].strip()), '%H''%M''%S.%f') + timedelta(
                             seconds=18)
                         log_problem_message('GGA_Empty', time.strftime('%H:%M:%S.%f')[:-5], str(newLine), nameFile_int)
                         break
-                    elif '$GNGGA' in newLine and newLine[1] != '':
+                    elif ('$GNGGA' in newLine  or '$GPGGA' in newLine) and newLine[1] != '':
                         flags["GGA"] = True
                         countGGA += 1
                         for i in inUse_sat:
@@ -438,15 +445,21 @@ with open(nameFile, encoding="CP866") as inf2:
                     elif '$GNGSA' in newLine:
                         flags["GSA"] = True
                         flags["GSV"] = False
-                        if len(newLine) == 21 and countGGA >= 1:
+                        if 22 > len(newLine) > 19 and countGGA >= 1:
                             if newLine[2] == '3':
-                                idSystem = newLine[-3]
+                                if len(newLine) == 21:
+                                    idSystem = newLine[-3]
+                                elif len(newLine) == 20:
+                                    idSystem = 'L1'
                                 if not idSystem in dictIdSystems and len(newLine) > 20:
                                     idSystem = newLine[-3]
                                     dictIdSystems[idSystem] = [system_mapping[idSystem]]
-                                if newLine[-3] in system_mapping:
+                                if idSystem in system_mapping:
                                     parserGSA(newLine)
                                     break
+                        elif len(newLine) == 20 and countGGA >= 1:
+                            if newLine[2] == '3':
+                                idSystem = 'L1'
                             else:
                                 log_problem_message('GSA_Empty', time.strftime('%H:%M:%S.%f')[:-5],
                                                     line[start_index:-1], nameFile_int)
@@ -482,6 +495,7 @@ with open(nameFile, encoding="CP866") as inf2:
                 except:
                     countErrorChk += 1
                     continue
+
 
 if flags["GGA"]:
     # подсчет времени по сообщениям GGA
