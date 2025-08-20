@@ -25,10 +25,10 @@ def create_dir_if_not_exists(directory):
 create_dir_if_not_exists('Result_SNR')
 create_dir_if_not_exists('Result_CSV')
 create_dir_if_not_exists('problemAlly')
+
 txt_file_path = os.path.join('problemAlly', f'{nameFile_int}_problems.txt')
 if os.path.exists(txt_file_path):
     os.remove(txt_file_path)
-
 
 all_satSNR = {}
 not_inuse_satSNR = {}
@@ -91,7 +91,7 @@ SYSTEMS = {
             '7': 'L5I_L5',  # L5 1176.45 MHz
             '8': 'L5Q_L5',  # L5
             '11': 'L6_L6',  # L6
-            'GPS': 'L1'
+            'GPS': 'L1'     # L1 for MNMEA 0183 below version 4.0 and 2.2
         },
         'possible_sat_in_system': list(range(1, 33)),
     },
@@ -101,7 +101,7 @@ SYSTEMS = {
         'gsa_id_signal': {
             '1': 'G1CA_L1',  # L1 1602.0–1615.5 MHz
             '3': 'G2CA_L2',  # L2 1246.0–1256.5 MHz
-            'Glonass': 'L1'
+            'Glonass': 'L1'  # L1 for MNMEA 0183 below version 4.0 and 2.2
 
         },
         'possible_sat_in_system': list(range(65, 97)) + list(range(1, 29)),
@@ -113,11 +113,11 @@ SYSTEMS = {
             '1': 'B1I_L1',  # L1
             '9': 'B1C_L1',  # L1 1575.42 MHz
             '2': 'B2I_L2',  # L2 1268.52 MHz
-            'B': 'L2',  # L2
+            'B': 'L2',      # L2
             '4': 'B2A_L5',  # L5 1176.45 MHz
-            '5': 'L5',  # L5
+            '5': 'L5',      # L5
             '3': 'B3I_L3',  # L3
-            'BeiDou': 'L1'
+            'BeiDou': 'L1'  # L1 for MNMEA 0183 below version 4.0 and 2.2
         },
         'possible_sat_in_system': list(range(1, 64)) + list(range(201, 264)),
     },
@@ -126,10 +126,10 @@ SYSTEMS = {
         'gsa_id_system': '3',
         'gsa_id_signal': {
             '6': 'L1A_L1',  # L1 1575.42 MHz
-            '7': 'L1BC_L1',  # L1
+            '7': 'L1BC_L1', # L1
             '2': 'E5B_L2',  # L2 1278.75 MHz
-            '1': 'E5A_L2',  #  L5 1176.45 MHz
-            'Galileo': 'L1'
+            '1': 'E5A_L2',  # L5 1176.45 MHz
+            'Galileo': 'L1' # L1 for MNMEA 0183 below version 4.0 and 2.2
         },
         'possible_sat_in_system': list(range(101, 137)) + list(range(1, 37)) + list(range(301, 337)),
     },
@@ -171,38 +171,6 @@ gsv_mapping = {'$GPGSV': 'GPS', '$GLGSV': 'Glonass', '$BDGSV': 'BeiDou', '$GBGSV
 minElevation = 10
 # значение SNR, значения ниже этого в рассчете не участуют
 minSNR = 15
-
-# Проверка входных аргументов. Пример "ally_2J_channel_gnss_126.dat Glonass L2"
-'''
-def checkSystem(systemName):
-    try:
-        system = SYSTEMS.get(systemName)
-        if IDsystem == 'L1':
-            GSA_idSignal = system['gsa_id_signal_L1']
-        if IDsystem == 'L2':
-            GSA_idSignal = system['gsa_id_signal_L2']
-        if IDsystem == 'L5':
-            GSA_idSignal = system['gsa_id_signal_L5']
-
-        if not system or IDsystem not in ['L1', 'L2', 'L5']:
-            raise KeyError
-
-        satelliteSystem = system['satellite_system']
-        GSA_idSystem = system['gsa_id_system']
-        inUse_sat_sys = inUse_sat[systemName]
-        PossibleSatInSystem = system['possible_sat_in_system']
-        signal_keys = [key for key in system.keys() if key.startswith('gsa_id_signal_')]
-        for signal_key in signal_keys:
-            GSA_idSignal_1 = system[signal_key]
-            for signal_id, signal_name in GSA_idSignal_1.items():
-                signal_mapping[signal_id] = signal_name
-    except KeyError:
-        print('Naming error!')
-        print('Please choose from among the following:')
-        print('GPS, Glonass, BeiDou, Galileo')
-        print('L1, L2 or L5')
-    return GSA_idSignal, satelliteSystem, GSA_idSystem, inUse_sat_sys, PossibleSatInSystem
-'''
 
 
 # ф-я заполнение словаря all_sat, включающее L1, L2 и др
@@ -268,6 +236,7 @@ def parserGSV_inUse(line_from_file, inuse_sat, all_satSNR, not_inuse_satSNR):
                             else:
                                 countErrorChk += 1
     return
+
 
 def parserRMC(line_from_file):
     time1 = datetime.strptime(str(line_from_file[1].strip()), '%H''%M''%S.%f') + timedelta(seconds=18)
