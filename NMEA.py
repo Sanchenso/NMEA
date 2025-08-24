@@ -623,12 +623,13 @@ class NMEAParser:
 
         p = self.average(self.all_sat_snr[sys_name][sys_id])
 
-        # Исправленные строки с генераторами
-        count_snr1 = sum(1 for i in range(len(p[0]))
-                         if p[1][i] > ((last - first).total_seconds() * 0.5) and p[0][i] > self.min_snr)
+        count_snr1 = 0
+        average_snr = 0
 
-        average_snr = sum(p[0][i] for i in range(len(p[0]))
-                          if p[1][i] > ((last - first).total_seconds() * 0.5) and p[0][i] > self.min_snr)
+        for i in range(len(p[0])):
+            if p[1][i] > ((last - first).total_seconds() * 0.5) and p[0][i] > self.min_snr:
+                count_snr1 += 1
+                average_snr += p[0][i]
 
         if count_snr1 != 0:
             ax.text(0.01, 0.94, f'{round((average_snr / count_snr1), 1)} dBHz', fontsize=14, transform=ax.transAxes,
