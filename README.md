@@ -8,6 +8,8 @@ functions: parsing the NMEA 4.10 (GGA, GSA, RMC, GSV, TXT messages) of the selec
 arguments (configuration):
 
 1 - name of log ("logname.dat")
+2 - use all visible satellites ("GSV")
+3 - displaying graphs ("plot")
 
 usage example: python3 NMEA.py logname.dat
 
