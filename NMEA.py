@@ -49,7 +49,8 @@ class NMEAParser:
             "GGA": False,
             "GSV": False,
             "TXT": False,
-            "HD9311": False
+            "HD9311": False,
+            "PLOT": False
         }
 
         if system_gsv == "GSV":
@@ -542,7 +543,10 @@ class NMEAParser:
             self.all_sat_snr = self.not_inuse_sat_snr
             self.all_sat_elevation = self.not_inuse_sat_elevation
 
-        if self.flags["GSA"] or self.flags["GSV"]:
+        if not self.flags["GGA"]:
+            self.print_alert("Navigation Status (GGA) is unavailable")
+
+        if (self.flags["GSA"] or self.flags["GSV"]) and self.flags["GGA"]:
             last = datetime.strptime(self.list_time_gga[-1], '%H''%M''%S.%f')
             first = datetime.strptime(self.list_time_gga[0], '%H''%M''%S.%f')
 
@@ -646,7 +650,11 @@ class NMEAParser:
 
         jpeg_filename = f'Result_SNR/{self.name_file_int}_{sys_name}_{sys_id}.png'
         plt.savefig(jpeg_filename, dpi=200)
-        plt.close()
+        if self.flags["PLOT"]:
+            plt.show()
+            plt.close()
+        else:
+            plt.close()
 
 
 def main():
@@ -656,9 +664,11 @@ def main():
         sys.exit(1)
 
     name_file = sys.argv[1]
-    system_gsv = sys.argv[2] if len(sys.argv) > 2 else None
+    system_gsv = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] != "plot" else None
 
     parser = NMEAParser(name_file, system_gsv)
+    if "plot" in sys.argv[2:]:
+        parser.flags["PLOT"] = True
     parser.parse_file()
     parser.process_results()
 

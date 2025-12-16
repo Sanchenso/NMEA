@@ -13,8 +13,8 @@ path = "Result_CSV"
 for i in files:
     if i[-4:] in ('.dat', '.ubx', '.log') or i[-5:] == '.cyno':
         print(i)
-        subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GSV', shell=True)
-        #subprocess.call("python3 " + 'NMEA.py ' + i, shell=True)
+        #subprocess.call("python3 " + 'NMEA.py ' + i + ' ' + 'GSV', shell=True)
+        subprocess.call("python3 " + 'NMEA.py ' + i, shell=True)
 # Wait for all processes to complete
 for process in processes:
     process.wait()
@@ -246,9 +246,9 @@ def create_combined_plots(nameFile_int):
         axs[row][col].set_visible(False)
 
     # Настраиваем общий вид
-    plt.suptitle(f'SNR Analysis - {nameFile_int}', fontsize=16)
+    plt.suptitle(f'{nameFile_int}', fontsize=16)
     plt.tight_layout()
-    plt.subplots_adjust(top=0.93 if n_rows == 1 else 0.95)
+    plt.subplots_adjust(top=0.90 if n_rows == 1 else 0.93)
 
     # Создаем папку для результатов, если она не существует
     if not os.path.exists('Result_SNR_4'):
