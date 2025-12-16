@@ -1,5 +1,5 @@
 # NMEA
-parser SNR for Nmea
+parser SNR for NMEA
 
 ### NMEA.py
 
